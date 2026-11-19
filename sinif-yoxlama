@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sinif Yoxlaması</title>
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#1b2333;--mute:#6b7488;--pri:#1f4fd8;--ok:#16a34a;--bad:#dc2626;--line:#e3e7f0}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--pri);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  header h1{font-size:17px;margin:0}
+  header button{background:rgba(255,255,255,.2);color:#fff;border:0;padding:8px 12px;border-radius:8px}
+  main{max-width:820px;margin:0 auto;padding:14px}
+  .card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  h2{font-size:16px;margin:0 0 10px}
+  label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+  input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff}
+  button.btn{background:var(--pri);color:#fff;border:0;padding:13px 16px;border-radius:10px;font-size:16px;width:100%;margin-top:10px}
+  button.btn.sec{background:#e8edfb;color:var(--pri)}
+  button.btn.ok{background:var(--ok)}
+  button:disabled{opacity:.5}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .hidden{display:none!important}
+  video,canvas{width:100%;border-radius:12px;background:#000;display:block}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .stat{background:var(--bg);border-radius:12px;padding:12px;text-align:center}
+  .stat b{font-size:26px;display:block}
+  .stat span{font-size:12px;color:var(--mute)}
+  .chip{display:inline-block;padding:5px 10px;border-radius:20px;font-size:13px;margin-right:6px}
+  .chip.y{background:#dcfce7;color:#166534}.chip.n{background:#fee2e2;color:#991b1b}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+  td.miss{color:var(--bad);font-weight:600}
+  .scroll{overflow-x:auto}
+  .note{font-size:12px;color:var(--mute);margin-top:8px}
+  #msg{font-size:14px;margin-top:8px}
+  .err{color:var(--bad)}
+</style>
+</head>
+<body>
+
+<!-- GİRİŞ -->
+<section id="login" style="max-width:420px;margin:10vh auto;padding:14px">
+  <div class="card">
+    <h2>Sinif Yoxlaması — Giriş</h2>
+    <label>E-poçt</label>
+    <input id="email" type="email" autocomplete="username">
+    <label>Parol</label>
+    <input id="password" type="password" autocomplete="current-password">
+    <button class="btn" id="loginBtn">Daxil ol</button>
+    <div id="loginErr" class="err" style="margin-top:8px"></div>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+  <header>
+    <h1 id="title">Sinif Yoxlaması</h1>
+    <button id="logout">Çıxış</button>
+  </header>
+
+  <!-- DİREKTOR -->
+  <main id="directorView" class="hidden">
+    <div class="card">
+      <h2>Bu gün: <span id="todayDate"></span></h2>
+      <span class="chip n" id="chip10">10:00 — 0 sinif</span>
+      <span class="chip n" id="chip13">13:00 — 0 sinif</span>
+    </div>
+
+    <div class="card">
+      <h2>Yoxlama bölməsi</h2>
+      <button class="btn" id="openCheck">📷 Sinfi yoxla (kameranı aç)</button>
+    </div>
+
+    <div class="card hidden" id="checkCard">
+      <h2>Yeni yoxlama</h2>
+      <div class="row">
+        <div><label>Saat</label>
+          <select id="slot"><option>10:00</option><option>13:00</option></select></div>
+        <div><label>Sinif</label><input id="cls" placeholder="məs. 7a"></div>
+      </div>
+      <div class="row">
+        <div><label>Sinfin siyahı sayı</label><input id="roster" type="number" inputmode="numeric" min="1"></div>
+        <div><label>Forma rəngi</label><input id="uColor" type="color" value="#1f2f5c" style="height:46px;padding:3px"></div>
+      </div>
+      <label>Forma həssaslığı: <span id="tolVal">90</span></label>
+      <input id="tol" type="range" min="30" max="160" value="90">
+
+      <div style="margin-top:12px">
+        <video id="video" playsinline muted autoplay class="hidden"></video>
+        <canvas id="canvas" class="hidden"></canvas>
+      </div>
+      <button class="btn" id="snap" disabled>Şəkil çək</button>
+      <button class="btn sec" id="retake">Yenidən çək</button>
+      <button class="btn sec" id="fileBtn">Kamera açılmırsa: şəkil seç</button>
+      <input type="file" id="file" accept="image/*" capture="environment" class="hidden">
+      <div id="msg"></div>
+
+      <div id="results" class="hidden">
+        <div class="stats">
+          <div class="stat"><b id="rPresent">0</b><span>Dərsdə (nəfər)</span></div>
+          <div class="stat"><b id="rPct">0%</b><span>Davamiyyət faizi</span></div>
+          <div class="stat"><b id="rUniform">0</b><span>Məktəbli formasında</span></div>
+          <div class="stat"><b id="rUPct">0%</b><span>Forma faizi</span></div>
+        </div>
+        <div class="row">
+          <div><label>Dərsdə (düzəliş)</label><input id="ePresent" type="number" min="0"></div>
+          <div><label>Formada (düzəliş)</label><input id="eUniform" type="number" min="0"></div>
+        </div>
+        <button class="btn ok" id="save">✔ Qeyd et</button>
+      </div>
+      <p class="note">Şəkil heç bir yerə göndərilmir və saxlanmır, yalnız rəqəmlər qeyd olunur. Sayma təxminidir, lazım olsa rəqəmi düzəldin.</p>
+    </div>
+
+    <div class="card">
+      <h2>Son qeydlər</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Tarix</th><th>Saat</th><th>Sinif</th><th>Siyahı</th><th>Dərsdə</th><th>%</th><th>Forma</th><th>%</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </div>
+  </main>
+
+  <!-- ADMİN / İDARƏ -->
+  <main id="adminView" class="hidden">
+    <div class="card">
+      <h2>Məktəblər üzrə nəticə</h2>
+      <label>Tarix</label>
+      <input id="adminDate" type="date">
+      <button class="btn sec" id="adminRefresh">Yenilə</button>
+    </div>
+    <div class="card">
+      <div class="scroll"><table>
+        <thead><tr><th>Məktəb</th><th>10:00</th><th>13:00</th><th>Davamiyyət</th><th>Forma</th></tr></thead>
+        <tbody id="adminRows"></tbody>
+      </table></div>
+      <p class="note">Qırmızı "—" həmin saatda yoxlama edilmədiyini göstərir. Hər xana: yoxlanılan sinif sayı və davamiyyət %.</p>
+      <button class="btn sec" id="adminCsv">Gündəlik təfərrüat (CSV)</button>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+<script>
+/* ===== AYARLAR — Supabase → Project Settings → API ===== */
+const CONFIG = {
+  SUPABASE_URL: "https://wfagjimyjvuazvofulke.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_GDCQZViZ1kLgYeRecYwQcA_f8PceevS"   // publishable açar (RLS ilə qorunur, açıq olması təhlükəsizdir)
+};
+/* ======================================================= */
+
+const $ = id => document.getElementById(id);
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+let session = null, profile = null, model = null, stream = null;
+
+const today = () => new Date().toLocaleDateString("sv-SE"); // yerli tarix YYYY-MM-DD
+
+/* ---------- GİRİŞ ---------- */
+$("loginBtn").onclick = async () => {
+  $("loginErr").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+  if (error) { $("loginErr").textContent = "E-poçt və ya parol yanlışdır"; return; }
+  await enter();
+};
+$("password").addEventListener("keydown", e => { if (e.key === "Enter") $("loginBtn").click(); });
+$("logout").onclick = async () => { stopCam(); await sb.auth.signOut(); location.reload(); };
+
+async function enter() {
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  if (!session) return;
+  const { data: p, error } = await sb.from("profiles").select("*").eq("user_id", session.user.id).maybeSingle();
+  if (error || !p) {
+    $("loginErr").textContent = "Profil tapılmadı. İdarəyə müraciət edin.";
+    await sb.auth.signOut(); return;
+  }
+  profile = p;
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("title").textContent = p.school_name;
+  if (p.role === "admin") { $("adminView").classList.remove("hidden"); $("adminDate").value = today(); loadAdmin(); }
+  else { $("directorView").classList.remove("hidden"); $("todayDate").textContent = today();
+    const h = new Date().getHours() + new Date().getMinutes() / 60;
+    $("slot").value = h < 11.5 ? "10:00" : "13:00"; loadRecords(); }
+}
+enter();
+
+/* ---------- MODEL ---------- */
+async function ensureModel() {
+  if (model) return model;
+  $("msg").textContent = "Model yüklənir (ilk dəfə 10-20 saniyə çəkə bilər)...";
+  model = await cocoSsd.load({ base: "mobilenet_v2" });
+  $("msg").textContent = "";
+  return model;
+}
+
+/* ---------- KAMERA ---------- */
+async function startCam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+    $("video").srcObject = stream;
+    $("video").classList.remove("hidden"); $("canvas").classList.add("hidden");
+    $("snap").disabled = true;
+    await ensureModel();
+    $("snap").disabled = false;
+  } catch (e) {
+    $("msg").innerHTML = '<span class="err">Kamera açılmadı. İcazə verin və ya "şəkil seç" düyməsindən istifadə edin.</span>';
+    try { await ensureModel(); } catch (_) {}
+  }
+}
+function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
+
+$("openCheck").onclick = () => {
+  $("checkCard").classList.remove("hidden");
+  $("checkCard").scrollIntoView({ behavior: "smooth" });
+  $("results").classList.add("hidden");
+  startCam();
+};
+$("retake").onclick = () => { $("results").classList.add("hidden"); startCam(); };
+$("fileBtn").onclick = () => $("file").click();
+$("tol").oninput = () => $("tolVal").textContent = $("tol").value;
+$("snap").onclick = () => { const v = $("video"); analyze(v, v.videoWidth, v.videoHeight); };
+$("file").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => analyze(img, img.naturalWidth, img.naturalHeight);
+  img.src = URL.createObjectURL(f);
+};
+
+/* ---------- ANALİZ ---------- */
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+
+async function analyze(src, w, h) {
+  $("msg").textContent = "Sayılır...";
+  await ensureModel();
+  const cv = $("canvas"), ctx = cv.getContext("2d", { willReadFrequently: true });
+  cv.width = w; cv.height = h; ctx.drawImage(src, 0, 0, w, h);
+  stopCam(); $("video").classList.add("hidden"); cv.classList.remove("hidden");
+
+  const preds = await model.detect(cv, 100, 0.35);
+  const persons = preds.filter(p => p.class === "person" && p.score >= 0.35);
+  const target = hexToRgb($("uColor").value), tol = +$("tol").value;
+  let uniformCount = 0;
+  ctx.lineWidth = Math.max(2, w / 300);
+
+  persons.forEach(p => {
+    const [x, y, bw, bh] = p.bbox;
+    const sx = Math.max(0, Math.floor(x + bw * 0.25)), sy = Math.max(0, Math.floor(y + bh * 0.2));
+    const sw = Math.max(1, Math.min(w - sx, Math.floor(bw * 0.5))), sh = Math.max(1, Math.min(h - sy, Math.floor(bh * 0.3)));
+    const d = ctx.getImageData(sx, sy, sw, sh).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    r /= n; g /= n; b /= n;
+    const isU = Math.hypot(r - target[0], g - target[1], b - target[2]) <= tol;
+    if (isU) uniformCount++;
+    ctx.strokeStyle = isU ? "#22c55e" : "#ef4444";
+    ctx.strokeRect(x, y, bw, bh);
+  });
+
+  $("ePresent").value = persons.length;
+  $("eUniform").value = uniformCount;
+  $("results").classList.remove("hidden");
+  updateStats();
+  $("msg").textContent = persons.length ? "Yaşıl çərçivə — formada, qırmızı — formasız." : "Heç kim tapılmadı. Daha yaxşı işıqda və ya uzaqdan çəkin.";
+}
+
+function updateStats() {
+  const present = +$("ePresent").value || 0, uni = +$("eUniform").value || 0, roster = +$("roster").value || 0;
+  $("rPresent").textContent = present;
+  $("rPct").textContent = roster ? Math.round(present / roster * 100) + "%" : "—";
+  $("rUniform").textContent = uni;
+  $("rUPct").textContent = present ? Math.round(uni / present * 100) + "%" : "—";
+}
+["ePresent", "eUniform", "roster"].forEach(id => $(id).addEventListener("input", updateStats));
+
+/* ---------- QEYD ET (Supabase) ---------- */
+$("save").onclick = async () => {
+  const cls = $("cls").value.trim(), roster = +$("roster").value;
+  if (!cls || !roster) { $("msg").innerHTML = '<span class="err">Sinif adını və siyahı sayını yazın.</span>'; return; }
+  const present = +$("ePresent").value || 0, uni = +$("eUniform").value || 0;
+  const rec = {
+    user_id: session.user.id, school_name: profile.school_name,
+    check_date: today(), slot: $("slot").value, class_name: cls, roster, present,
+    present_pct: Math.round(present / roster * 100),
+    uniform: uni, uniform_pct: present ? Math.round(uni / present * 100) : 0
+  };
+  $("save").disabled = true;
+  const { error } = await sb.from("checks").upsert(rec, { onConflict: "user_id,check_date,slot,class_name" });
+  $("save").disabled = false;
+  if (error) { $("msg").innerHTML = '<span class="err">Qeyd olunmadı: ' + error.message + '</span>'; return; }
+  $("msg").textContent = "Qeyd olundu ✔";
+  $("results").classList.add("hidden"); $("canvas").classList.add("hidden");
+  $("cls").value = ""; loadRecords();
+};
+
+async function loadRecords() {
+  const { data, error } = await sb.from("checks").select("*")
+    .order("check_date", { ascending: false }).order("created_at", { ascending: false }).limit(100);
+  if (error) return;
+  $("rows").innerHTML = data.map(r =>
+    `<tr><td>${r.check_date}</td><td>${r.slot}</td><td>${r.class_name}</td><td>${r.roster}</td><td>${r.present}</td><td>${r.present_pct}%</td><td>${r.uniform}</td><td>${r.uniform_pct}%</td></tr>`
+  ).join("") || '<tr><td colspan="8">Hələ qeyd yoxdur</td></tr>';
+  ["10:00", "13:00"].forEach(s => {
+    const n = data.filter(r => r.check_date === today() && r.slot === s).length;
+    const el = $("chip" + s.slice(0, 2)); el.textContent = `${s} — ${n} sinif`; el.className = "chip " + (n ? "y" : "n");
+  });
+}
+
+/* ---------- İDARƏ PANELİ ---------- */
+let adminData = [];
+$("adminRefresh").onclick = loadAdmin;
+$("adminDate").onchange = loadAdmin;
+
+async function loadAdmin() {
+  const date = $("adminDate").value || today();
+  const [{ data: checks }, { data: schools }] = await Promise.all([
+    sb.from("checks").select("*").eq("check_date", date),
+    sb.from("profiles").select("school_name").eq("role", "director")
+  ]);
+  adminData = checks || [];
+  const names = Array.from(new Set((schools || []).map(s => s.school_name).concat(adminData.map(c => c.school_name)))).sort();
+  const cell = (rows) => {
+    if (!rows.length) return '<td class="miss">—</td>';
+    const pr = rows.reduce((a, r) => a + r.present, 0), ro = rows.reduce((a, r) => a + r.roster, 0);
+    return `<td>${rows.length} sinif · ${ro ? Math.round(pr / ro * 100) : 0}%</td>`;
+  };
+  $("adminRows").innerHTML = names.map(n => {
+    const rows = adminData.filter(c => c.school_name === n);
+    const pr = rows.reduce((a, r) => a + r.present, 0), un = rows.reduce((a, r) => a + r.uniform, 0), ro = rows.reduce((a, r) => a + r.roster, 0);
+    return `<tr><td>${n}</td>${cell(rows.filter(r => r.slot === "10:00"))}${cell(rows.filter(r => r.slot === "13:00"))}` +
+      `<td>${rows.length ? Math.round(pr / ro * 100) + "%" : "—"}</td><td>${rows.length && pr ? Math.round(un / pr * 100) + "%" : "—"}</td></tr>`;
+  }).join("") || '<tr><td colspan="5">Məlumat yoxdur</td></tr>';
+}
+
+$("adminCsv").onclick = () => {
+  const head = ["Tarix", "Saat", "Məktəb", "Sinif", "Siyahı sayı", "Dərsdə", "Davamiyyət %", "Formada", "Forma %"];
+  const lines = [head].concat(adminData.map(r => [r.check_date, r.slot, r.school_name, r.class_name, r.roster, r.present, r.present_pct, r.uniform, r.uniform_pct]));
+  const blob = new Blob(["\ufeff" + lines.map(l => l.join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "sinif-yoxlamasi-" + ($("adminDate").value || today()) + ".csv"; a.click();
+};
+</script>
+</body>
+</html>
