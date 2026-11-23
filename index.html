@@ -324,10 +324,9 @@
     </section>
 
     <section class="tab hidden" data-tab="rep">
-      <div class="card"><h2>Məktəb hesabatı</h2><p class="hint">Yalnız öz məktəbinizin məlumatı Excel faylı kimi yüklənir</p>
+      <div class="card"><h2>Məktəb hesabatı</h2><p class="hint">Yalnız öz məktəbinizin məlumatı bir Excel faylında yüklənir: yoxlamalar və dərsdən yayınmalar</p>
         <div class="row"><div><label for="dFrom">Başlanğıc</label><input id="dFrom" type="date"></div><div><label for="dTo">Son</label><input id="dTo" type="date"></div></div>
-        <button class="btn" id="dXls"><svg class="ic"><use href="#i-dl"/></svg>Sinif yoxlaması (Excel)</button>
-        <button class="btn sec" id="dAbs"><svg class="ic"><use href="#i-dl"/></svg>Dərsdən yayınma (Excel)</button>
+        <button class="btn" id="dXls"><svg class="ic"><use href="#i-dl"/></svg>Hesabat (Excel)</button>
         <div id="dMsg" class="note"></div></div>
     </section>
 
@@ -695,7 +694,27 @@ async function absXls(p) {
   xls(`yayinma_${f}_${t}`, ["Tarix", "Soyadı", "Adı", "Ata adı", "Məktəb", "UTİS", "FİN", "Sinif", "Hadisə", "Görülən tədbir"],
     data.map(x => [x.tarix, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.school_name, x.students?.utis, x.students?.fin, x.students?.sinif, x.nov, x.qeyd || ""]));
 }
-$("dXls").onclick = () => chkXls("d"); $("dAbs").onclick = () => absXls("d");
+$("dXls").onclick = dirReport;
+async function dirReport() {
+  const f = $("dFrom").value || today(), t = $("dTo").value || f, m = $("dMsg"), sch = profile.school_name;
+  m.textContent = "Hazırlanır, bir az gözləyin...";
+  if (!window.ExcelJS) { m.innerHTML = '<span class="err">Excel modulu yüklənmədi. İnterneti yoxlayıb səhifəni yeniləyin.</span>'; return; }
+  const [c, a] = await Promise.all([
+    pages(() => sb.from("checks").select("*").eq("school_name", sch).gte("check_date", f).lte("check_date", t).order("check_date").order("slot").order("class_name")),
+    pages(() => sb.from("absences").select("id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").eq("school_name", sch).gte("tarix", f).lte("tarix", t).order("tarix").order("id"))
+  ]);
+  const er = c.error || a.error;
+  if (er) { m.innerHTML = '<span class="err">' + esc(er.message) + '</span>'; return; }
+  const sub = `${sch}   ·   Dövr: ${azd(f)} — ${azd(t)}   ·   Hazırlanma tarixi: ${azd(today())}`;
+  const wb = new ExcelJS.Workbook(); wb.creator = ORG;
+  mkSheet(wb, "Yoxlamalar", sub, ["Tarix", "Saat", "Sinif", "Siyahı sayı", "Dərsdə", "Davamiyyət %", "Formada", "Forma %"],
+    c.data.map(x => [azd(x.check_date), x.slot, x.class_name, x.roster, x.present, x.present_pct, x.uniform, x.uniform_pct]), [13, 9, 10, 12, 11, 14, 11, 11], [6, 8]);
+  mkSheet(wb, "Yayınmalar", sub, ["Tarix", "Sinif", "Soyadı", "Adı", "Ata adı", "UTİS", "FİN", "Hadisə", "Görülən tədbir"],
+    a.data.map(x => [azd(x.tarix), x.students?.sinif, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.students?.utis, x.students?.fin, x.nov, x.qeyd || ""]), [13, 9, 18, 16, 18, 14, 11, 20, 30]);
+  const buf = await wb.xlsx.writeBuffer(), el = document.createElement("a");
+  el.href = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })); el.download = `Hesabat_${f}_${t}.xlsx`; el.click();
+  m.textContent = `Hazırdır: ${c.data.length} yoxlama, ${a.data.length} yayınma`; toast("Hesabat yükləndi ✔");
+}
 $("csvBtn").onclick = fullReport;
 $("copyBtn").onclick = async () => {
   const r = await fetchRange(); if (!r) return;
