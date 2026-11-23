@@ -366,12 +366,16 @@
         <input id="pq" placeholder="Şagird axtar..." style="margin-top:12px"><div id="pStud" style="margin-top:8px"></div></div></div>
     </section>
 
-    \1\2<p class="hint">Bütün məktəblər üzrə ətraflı Excel: xülasə, günlər, yoxlamalar, yayınmalar</p>
+    <section class="tab hidden" data-tab="rep">
+      <div class="card"><h2>Hesabat</h2><p class="hint">Bütün məktəblər üzrə ətraflı Excel: xülasə, günlər, yoxlamalar, yayınmalar</p>
         <div class="row"><div><label for="repFrom">Başlanğıc</label><input id="repFrom" type="date"></div><div><label for="repTo">Son</label><input id="repTo" type="date"></div></div>
         <button class="btn" id="csvBtn"><svg class="ic"><use href="#i-dl"/></svg>Hesabat (Excel)</button>
         <button class="btn sec" id="copyBtn">Mətn hesabatı kopyala (WhatsApp)</button>
         <div id="repMsg" class="note"></div>
       </div>
+      <div class="card"><h2>Köhnə saytdan köçürmə</h2><p class="hint">PythonAnywhere-dən endirdiyiniz davamiyyet.db faylını seçin. Şagirdlər və yayınmalar avtomatik köçürülür.</p>
+        <input type="file" id="dbFile" accept=".db,.sqlite,.sqlite3">
+        <button class="btn" id="dbGo">Köçürməyə başla</button><div id="dbMsg" class="note"></div></div>
     </section>
   </main>
 
@@ -392,6 +396,7 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
@@ -834,6 +839,37 @@ function renderPS() {
   $("pStud").innerHTML = l.slice(0, 300).map(x => `<div class="rec"><div class="badge">${esc(x.sinif)}</div><div class="info"><b>${esc(x.soyad)} ${esc(x.ad)}</b><small>${esc(x.ata_adi)}</small></div>
     <div class="nums"><span class="pill ${cnt[x.id] ? "r" : ""}">Bu ay ${cnt[x.id] || 0}</span></div></div>`).join("") || '<div class="empty">Şagird tapılmadı</div>';
 }
+
+/* ---------- İDARƏ: köhnə saytdan köçürmə (davamiyyet.db) ---------- */
+let SQLP;
+$("dbGo").onclick = async () => {
+  const f = $("dbFile").files[0], m = $("dbMsg");
+  if (!f) return toast("Əvvəlcə davamiyyet.db faylını seçin");
+  if (!window.initSqlJs) { m.innerHTML = '<span class="err">Modul yüklənmədi. İnterneti yoxlayıb səhifəni yeniləyin.</span>'; return; }
+  $("dbGo").disabled = true;
+  try {
+    m.textContent = "Fayl oxunur...";
+    SQLP = SQLP || await initSqlJs({ locateFile: x => "https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/" + x });
+    const db = new SQLP.Database(new Uint8Array(await f.arrayBuffer()));
+    const q = sql => { const r = db.exec(sql); return r.length ? r[0].values : []; };
+    const stu = q("select id,soyad,ad,ata_adi,mekteb,utis,fin,sinif from students");
+    const abs = q("select a.student_id,a.tarix,a.nov,a.qeyd,s.mekteb from absences a join students s on s.id=a.student_id");
+    const byFin = {}, idMap = {}; stu.forEach(r => byFin[String(r[6]).toUpperCase()] = r[0]);
+    for (let i = 0; i < stu.length; i += 400) {
+      m.textContent = `Şagirdlər köçürülür: ${Math.min(i + 400, stu.length)} / ${stu.length}`;
+      const { data, error } = await sb.from("students").upsert(stu.slice(i, i + 400).map(r => ({ soyad: r[1], ad: r[2], ata_adi: r[3], school_name: r[4], utis: String(r[5]), fin: String(r[6]).toUpperCase(), sinif: r[7] })), { onConflict: "fin" }).select("id,fin");
+      if (error) throw error; data.forEach(d => idMap[byFin[d.fin]] = d.id);
+    }
+    const rows = abs.filter(r => idMap[r[0]]).map(r => ({ student_id: idMap[r[0]], tarix: r[1], nov: r[2], qeyd: r[3] || null, school_name: r[4] }));
+    for (let i = 0; i < rows.length; i += 500) {
+      m.textContent = `Yayınmalar köçürülür: ${Math.min(i + 500, rows.length)} / ${rows.length}`;
+      const { error } = await sb.from("absences").upsert(rows.slice(i, i + 500), { onConflict: "student_id,tarix" });
+      if (error) throw error;
+    }
+    m.textContent = `Bitdi ✔ ${stu.length} şagird və ${rows.length} yayınma köçürüldü`; toast("Köçürmə tamamlandı ✔");
+  } catch (e) { m.innerHTML = '<span class="err">Xəta: ' + esc(e.message || String(e)) + '</span>'; }
+  $("dbGo").disabled = false;
+};
 </script>
 </body>
 </html>
