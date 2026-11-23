@@ -403,6 +403,8 @@
   <p class="hint" id="hSum" style="margin:10px 0"></p>
   <div class="row" style="align-items:end"><div><label for="hDate">Bərpa tarixi</label><input id="hDate" type="date"></div><div><button class="btn ok" id="hRest" style="margin-top:0">Bərpa olundu</button></div></div>
   <div class="row" style="margin-top:8px"><div><button class="btn sec" id="hEditBtn" style="margin-top:0">Redaktə</button></div><div><button class="btn sec" id="hDelBtn" style="margin-top:0;color:#be123c">Şagirdi sil</button></div></div>
+  <div class="row" style="margin-top:8px;align-items:end"><div><label for="hNov">Yayınma növü</label><select id="hNov"><option>Üzrsüz</option><option>Üzrlü (xəstəlik)</option><option>Üzrlü (digər)</option></select></div><div><label for="hQeyd">Görülən tədbir</label><input id="hQeyd" maxlength="200"></div></div>
+  <button class="btn" id="hAddAbs">Yayınma əlavə et (yuxarıdakı tarixə)</button>
   <div id="hEdit" class="hidden" style="margin-top:10px">
     <div class="row"><div><label for="eSoy">Soyadı</label><input id="eSoy"></div><div><label for="eAd">Adı</label><input id="eAd"></div></div>
     <div class="row"><div><label for="eAta">Ata adı</label><input id="eAta"></div><div><label for="eSin">Sinif</label><input id="eSin"></div></div>
@@ -788,8 +790,11 @@ $("jList").onchange = async e => {
   noteMap[sid] = v; toast("Qeyd saxlandı ✔");
 };
 let hSid = 0;
+const hStu = () => stu.find(x => x.id === hSid) || pS.find(x => x.id === hSid);
+const isAdm = () => profile && profile.role === "admin";
+const refreshAfter = async () => { if (isAdm()) await loadAdminPortal(); else loadJournal(); };
 async function openHist(sid) {
-  const s = stu.find(x => x.id === sid); if (!s) return; hSid = sid;
+  hSid = sid; const s = hStu(); if (!s) return;
   $("hName").textContent = `${s.soyad} ${s.ad} (${s.sinif})`; $("hSum").textContent = "Yüklənir..."; $("hList").innerHTML = "";
   $("hDate").value = $("jDate").value || today(); $("hEdit").classList.add("hidden"); $("hist").classList.remove("hidden");
   const [A, R] = await Promise.all([
@@ -809,17 +814,23 @@ $("hList").onclick = async e => {
   const b = e.target.closest("[data-del]"); if (!b || !confirm("Bu qeyd silinsin?")) return;
   const { error } = await sb.from(b.dataset.t).delete().eq("id", +b.dataset.del);
   if (error) return toast("Xəta: " + error.message);
-  toast("Silindi"); openHist(hSid); loadJournal();
+  toast("Silindi"); openHist(hSid); refreshAfter();
+};
+$("hAddAbs").onclick = async () => {
+  const d = $("hDate").value; if (!d) return toast("Tarixi seçin");
+  const { error } = await sb.from("absences").upsert({ student_id: hSid, tarix: d, nov: $("hNov").value, qeyd: $("hQeyd").value.trim().slice(0, 200) || null, school_name: hStu().school_name || profile.school_name, user_id: session.user.id }, { onConflict: "student_id,tarix" });
+  if (error) return toast("Xəta: " + error.message);
+  $("hQeyd").value = ""; toast("Yayınma qeyd olundu ✔"); openHist(hSid); refreshAfter();
 };
 $("hRest").onclick = async () => {
   const d = $("hDate").value; if (!d) return toast("Tarixi seçin");
   await sb.from("restorations").delete().eq("student_id", hSid).eq("tarix", d);
-  const { error } = await sb.from("restorations").insert({ student_id: hSid, tarix: d, school_name: profile.school_name, user_id: session.user.id });
+  const { error } = await sb.from("restorations").insert({ student_id: hSid, tarix: d, school_name: hStu().school_name || profile.school_name, user_id: session.user.id });
   if (error) return toast("Xəta: " + error.message);
   toast("Bərpa qeydi əlavə olundu ✔"); openHist(hSid);
 };
 $("hEditBtn").onclick = () => {
-  const s = stu.find(x => x.id === hSid); if (!s) return;
+  const s = hStu(); if (!s) return;
   $("eSoy").value = s.soyad; $("eAd").value = s.ad; $("eAta").value = s.ata_adi; $("eSin").value = s.sinif; $("eUtis").value = s.utis; $("eFin").value = s.fin;
   $("hEdit").classList.toggle("hidden");
 };
@@ -830,14 +841,14 @@ $("eSave").onclick = async () => {
   if (!/^\d+$/.test(f.utis)) return toast("UTİS kod yalnız rəqəm olmalıdır");
   const { error } = await sb.from("students").update(f).eq("id", hSid);
   if (error) return toast(error.code === "23505" ? "Bu FİN kodlu şagird artıq var" : "Xəta: " + error.message);
-  toast("Saxlandı ✔"); await loadPortal(); $("jCls").value = f.sinif; loadJournal(); openHist(hSid);
+  toast("Saxlandı ✔"); if (isAdm()) { await loadAdminPortal(); } else { await loadPortal(); $("jCls").value = f.sinif; loadJournal(); } openHist(hSid);
 };
 $("hDelBtn").onclick = async () => {
-  const s = stu.find(x => x.id === hSid); if (!s || !confirm(`${s.soyad} ${s.ad} və bütün qeydləri silinsin? Bu geri qaytarılmır.`)) return;
+  const s = hStu(); if (!s || !confirm(`${s.soyad} ${s.ad} və bütün qeydləri silinsin? Bu geri qaytarılmır.`)) return;
   await sb.from("absences").delete().eq("student_id", hSid); await sb.from("restorations").delete().eq("student_id", hSid);
   const { error } = await sb.from("students").delete().eq("id", hSid);
   if (error) return toast("Xəta: " + error.message);
-  $("hist").classList.add("hidden"); toast("Şagird silindi"); loadPortal();
+  $("hist").classList.add("hidden"); toast("Şagird silindi"); if (isAdm()) loadAdminPortal(); else loadPortal();
 };
 $("hClose").onclick = () => $("hist").classList.add("hidden");
 $("hist").onclick = e => { if (e.target.id === "hist") $("hist").classList.add("hidden"); };
@@ -910,7 +921,7 @@ async function loadAdminPortal() {
   $("pRows").innerHTML = '<div class="empty">Yüklənir...</div>';
   const ms = today().slice(0, 8) + "01";
   const [s, a, p] = await Promise.all([
-    pages(() => sb.from("students").select("id,school_name,soyad,ad,ata_adi,sinif").order("id")),
+    pages(() => sb.from("students").select("id,school_name,soyad,ad,ata_adi,sinif,utis,fin").order("id")),
     pages(() => sb.from("absences").select("student_id,tarix,school_name").gte("tarix", ms).order("id")),
     pages(() => sb.from("profiles").select("school_name").eq("role", "director").order("school_name"))
   ]);
@@ -928,6 +939,7 @@ async function loadAdminPortal() {
 $("pRows").onclick = e => { const r = e.target.closest("[data-m]"); if (!r) return; pCur = r.dataset.m; $("pq").value = ""; $("pMain").classList.add("hidden"); $("pSchool").classList.remove("hidden"); window.scrollTo({ top: 0 }); renderPS(); };
 $("pBack").onclick = () => { pCur = ""; $("pSchool").classList.add("hidden"); $("pMain").classList.remove("hidden"); };
 $("pq").oninput = renderPS;
+$("pStud").onclick = e => { const b = e.target.closest("[data-h]"); if (b) openHist(+b.dataset.h); };
 function renderPS() {
   $("pName").textContent = pCur;
   const cnt = {}; pA.filter(x => x.school_name === pCur).forEach(x => cnt[x.student_id] = (cnt[x.student_id] || 0) + 1);
@@ -935,7 +947,7 @@ function renderPS() {
   const l = pS.filter(x => x.school_name === pCur && `${x.soyad} ${x.ad} ${x.ata_adi} ${x.sinif}`.toLowerCase().includes(q))
     .sort((x, y) => x.sinif.localeCompare(y.sinif, "az", { numeric: true }) || x.soyad.localeCompare(y.soyad, "az"));
   $("pStud").innerHTML = l.slice(0, 300).map(x => `<div class="rec"><div class="badge">${esc(x.sinif)}</div><div class="info"><b>${esc(x.soyad)} ${esc(x.ad)}</b><small>${esc(x.ata_adi)}</small></div>
-    <div class="nums"><span class="pill ${cnt[x.id] ? "r" : ""}">Bu ay ${cnt[x.id] || 0}</span></div></div>`).join("") || '<div class="empty">Şagird tapılmadı</div>';
+    <div class="nums"><span class="pill ${cnt[x.id] ? "r" : ""}">Bu ay ${cnt[x.id] || 0}</span><button class="hbtn" data-h="${x.id}">Tarixçə</button></div></div>`).join("") || '<div class="empty">Şagird tapılmadı</div>';
 }
 
 /* ---------- İDARƏ: köhnə saytdan köçürmə (davamiyyet.db) ---------- */
@@ -964,7 +976,17 @@ $("dbGo").onclick = async () => {
       const { error } = await sb.from("absences").upsert(rows.slice(i, i + 500), { onConflict: "student_id,tarix" });
       if (error) throw error;
     }
-    m.textContent = `Bitdi ✔ ${stu.length} şagird və ${rows.length} yayınma köçürüldü`; toast("Köçürmə tamamlandı ✔");
+    let nr = 0;
+    try {
+      const rs = q("select r.student_id,r.tarix,s.mekteb from restorations r join students s on s.id=r.student_id").filter(r => idMap[r[0]]);
+      if (rs.length) {
+        const ex = await pages(() => sb.from("restorations").select("student_id,tarix").order("id")), have = new Set((ex.data || []).map(x => x.student_id + "|" + x.tarix));
+        const add = rs.map(r => ({ student_id: idMap[r[0]], tarix: r[1], school_name: r[2] })).filter(r => !have.has(r.student_id + "|" + r.tarix));
+        for (let i = 0; i < add.length; i += 500) { const { error } = await sb.from("restorations").insert(add.slice(i, i + 500)); if (error) throw error; }
+        nr = add.length;
+      }
+    } catch (e) { console.warn("restorations", e); }
+    m.textContent = `Bitdi ✔ ${stu.length} şagird, ${rows.length} yayınma, ${nr} bərpa qeydi köçürüldü`; toast("Köçürmə tamamlandı ✔");
   } catch (e) { m.innerHTML = '<span class="err">Xəta: ' + esc(e.message || String(e)) + '</span>'; }
   $("dbGo").disabled = false;
 };
