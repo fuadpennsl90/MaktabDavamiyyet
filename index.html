@@ -206,6 +206,13 @@
   .sh{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .sh h3{margin:0 0 10px}
   .jr{padding:13px 0;border-bottom:1px solid var(--line)}.jr:last-child{border:0}.jr b{display:block;margin-bottom:9px;font-size:15px}
+  .jnote{margin-top:8px;padding:9px 12px;border-radius:12px;font-size:14px}
+  .jtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.jtop b{margin:0}
+  .hbtn{border:0;background:#efeaff;color:var(--v);font-weight:800;border-radius:12px;padding:6px 11px;font-size:12px;white-space:nowrap}
+  #hist{position:fixed;inset:0;z-index:60;background:rgba(20,16,40,.55);display:flex;align-items:flex-end;justify-content:center}
+  #hist .sheet{background:var(--card);width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:28px 28px 0 0;padding:22px 20px calc(22px + var(--sab))}
+  #hist .hr{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}#hist .hr:last-child{border:0}
+  #hist .hr .x{border:0;background:#ffe4ea;color:#be123c;border-radius:10px;padding:6px 10px;font-weight:800;font-size:12px}
   .jb{display:flex;gap:6px;flex-wrap:wrap}.jb button{border:1px solid var(--line);background:#fff;color:var(--mute);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:800}
   .jb button.on{color:#fff;border-color:transparent}.jb .g.on{background:var(--ok)}.jb .n0.on{background:var(--bad)}.jb .n1.on{background:var(--amber)}.jb .n2.on{background:var(--v)}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -392,6 +399,8 @@
   </nav>
 </div>
 
+<div id="hist" class="hidden"><div class="sheet"><div class="top"><b id="hName" style="font-size:17px"></b><button class="back" id="hClose">Bağla</button></div>
+  <p class="hint" id="hSum" style="margin:10px 0"></p><div id="hList"></div></div></div>
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -728,7 +737,7 @@ $("copyBtn").onclick = async () => {
 
 /* ---------- PORTAL (köhnə tahsilganja saytının direktor bölməsi) ---------- */
 const NOV = ["Üzrsüz", "Üzrlü (xəstəlik)", "Üzrlü (digər)"], NOVS = ["Üzrsüz", "Xəstəlik", "Üzrlü"];
-let stu = [], absMap = {};
+let stu = [], absMap = {}, noteMap = {};
 async function loadPortal() {
   const { data, error } = await pages(() => sb.from("students").select("*").eq("school_name", profile.school_name).order("id"));
   if (error) { $("jList").innerHTML = `<div class="empty err">${esc(error.message)}<br>Supabase-də portal-schema.sql faylını işə salın.</div>`; return; }
@@ -738,30 +747,56 @@ async function loadPortal() {
   loadJournal();
 }
 async function loadJournal() {
-  const ids = stu.filter(s => s.sinif === $("jCls").value).map(s => s.id); absMap = {};
+  const ids = stu.filter(s => s.sinif === $("jCls").value).map(s => s.id); absMap = {}; noteMap = {};
   if (ids.length) {
-    const { data } = await sb.from("absences").select("student_id,nov").eq("tarix", $("jDate").value || today()).in("student_id", ids);
-    (data || []).forEach(a => absMap[a.student_id] = a.nov);
+    const { data } = await sb.from("absences").select("student_id,nov,qeyd").eq("tarix", $("jDate").value || today()).in("student_id", ids);
+    (data || []).forEach(a => { absMap[a.student_id] = a.nov; noteMap[a.student_id] = a.qeyd || ""; });
   }
   renderJ();
 }
 function renderJ() {
   const list = stu.filter(s => s.sinif === $("jCls").value);
   $("jAll").textContent = list.length; $("jAbs").textContent = list.filter(s => absMap[s.id]).length;
-  $("jList").innerHTML = list.map(s => `<div class="jr"><b>${esc(s.soyad)} ${esc(s.ad)} ${esc(s.ata_adi)}</b><div class="jb" data-sid="${s.id}">
-    <button data-n="" class="g ${absMap[s.id] ? "" : "on"}">Gəlib</button>${NOV.map((n, i) => `<button data-n="${n}" class="n${i} ${absMap[s.id] === n ? "on" : ""}">${NOVS[i]}</button>`).join("")}</div></div>`).join("")
+  $("jList").innerHTML = list.map(s => `<div class="jr"><div class="jtop"><b>${esc(s.soyad)} ${esc(s.ad)} ${esc(s.ata_adi)}</b><button class="hbtn" data-h="${s.id}">Tarixçə</button></div><div class="jb" data-sid="${s.id}">
+    <button data-n="" class="g ${absMap[s.id] ? "" : "on"}">Gəlib</button>${NOV.map((n, i) => `<button data-n="${n}" class="n${i} ${absMap[s.id] === n ? "on" : ""}">${NOVS[i]}</button>`).join("")}</div>${absMap[s.id] ? `<input class="jnote" data-n="${s.id}" maxlength="200" placeholder="Görülən tədbir (məs. valideynlə danışıldı)" value="${esc(noteMap[s.id] || "")}">` : ""}</div>`).join("")
     || '<div class="empty">Bu sinifdə şagird yoxdur. Aşağıdan əlavə edin.</div>';
 }
 $("jCls").onchange = loadJournal; $("jDate").onchange = loadJournal;
 $("jList").onclick = async e => {
   const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.h) return openHist(+b.dataset.h);
   const sid = +b.parentElement.dataset.sid, nov = b.dataset.n, d = $("jDate").value || today(); buzz(10);
   const { error } = nov
     ? await sb.from("absences").upsert({ student_id: sid, tarix: d, nov, school_name: profile.school_name, user_id: session.user.id }, { onConflict: "student_id,tarix" })
     : await sb.from("absences").delete().eq("student_id", sid).eq("tarix", d);
   if (error) { toast("Xəta: " + error.message); return; }
-  if (nov) absMap[sid] = nov; else delete absMap[sid]; renderJ();
+  if (nov) absMap[sid] = nov; else { delete absMap[sid]; delete noteMap[sid]; } renderJ();
 };
+$("jList").onchange = async e => {
+  const i = e.target.closest(".jnote"); if (!i) return;
+  const sid = +i.dataset.n, v = i.value.trim().slice(0, 200);
+  const { error } = await sb.from("absences").update({ qeyd: v || null }).eq("student_id", sid).eq("tarix", $("jDate").value || today());
+  if (error) return toast("Xəta: " + error.message);
+  noteMap[sid] = v; toast("Qeyd saxlandı ✔");
+};
+async function openHist(sid) {
+  const s = stu.find(x => x.id === sid); if (!s) return;
+  $("hName").textContent = `${s.soyad} ${s.ad} (${s.sinif})`; $("hSum").textContent = "Yüklənir..."; $("hList").innerHTML = ""; $("hist").classList.remove("hidden");
+  const { data, error } = await sb.from("absences").select("id,tarix,nov,qeyd").eq("student_id", sid).order("tarix", { ascending: false });
+  if (error) { $("hSum").textContent = "Xəta: " + error.message; return; }
+  const nu = data.filter(x => x.nov === "Üzrsüz").length;
+  $("hSum").textContent = data.length ? `Cəmi ${data.length} yayınma · üzrsüz ${nu} · üzrlü ${data.length - nu}` : "Yayınma qeydi yoxdur";
+  $("hList").innerHTML = data.map(x => `<div class="hr"><div class="info" style="flex:1"><b>${azd(x.tarix)}</b> <span class="pill ${x.nov === "Üzrsüz" ? "r" : "u"}">${esc(x.nov)}</span>
+    ${x.qeyd ? `<div class="hint" style="margin-top:4px">${esc(x.qeyd)}</div>` : ""}</div><button class="x" data-del="${x.id}" data-s="${sid}">Sil</button></div>`).join("");
+}
+$("hList").onclick = async e => {
+  const b = e.target.closest("[data-del]"); if (!b || !confirm("Bu qeyd silinsin?")) return;
+  const { error } = await sb.from("absences").delete().eq("id", +b.dataset.del);
+  if (error) return toast("Xəta: " + error.message);
+  toast("Silindi"); openHist(+b.dataset.s); loadJournal();
+};
+$("hClose").onclick = () => $("hist").classList.add("hidden");
+$("hist").onclick = e => { if (e.target.id === "hist") $("hist").classList.add("hidden"); };
 $("stBtn").onclick = () => $("stBox").classList.toggle("hidden");
 $("stSave").onclick = async () => {
   const v = id => $(id).value.trim().replace(/\s+/g, " "), f = { soyad: v("sSoy"), ad: v("sAd"), ata_adi: v("sAta"), sinif: v("sSin"), utis: v("sUtis"), fin: v("sFin").toUpperCase() };
