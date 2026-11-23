@@ -177,6 +177,37 @@
   #toast{position:fixed;left:50%;bottom:calc(100px + var(--sab));transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:13px 20px;border-radius:18px;
     font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:.3s;z-index:50;max-width:calc(100% - 40px);text-align:center}
   #toast.show{opacity:1;transform:translate(-50%,0)}
+  /* ---------- YENİ: sinif seçimi, steppers, admin ---------- */
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:#efeaff;border-radius:20px;padding:5px;gap:5px}
+  .seg button{border:0;background:transparent;padding:14px;border-radius:15px;font-size:18px;font-weight:800;color:var(--v)}
+  .seg button.on{background:var(--grad);color:#fff;box-shadow:0 10px 20px -10px rgba(37,99,235,.8)}
+  .prog{margin-top:14px}.prog small{display:block;margin-top:6px;font-size:13px;font-weight:700;color:var(--mute)}
+  .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+  .cbtn{border:2px solid var(--line);background:#faf9ff;border-radius:20px;padding:16px 6px;color:var(--ink);display:flex;flex-direction:column;gap:3px;align-items:center;transition:transform .1s}
+  .cbtn b{font-size:22px;font-weight:800}.cbtn small{font-size:12px;font-weight:700;color:var(--mute)}
+  .cbtn.done{background:#d9fbec;border-color:#a7f3d0}.cbtn.done small{color:#047857}.cbtn:active{transform:scale(.95)}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:4px}.top b{font-size:22px;font-weight:800}
+  .back{border:0;background:#efeaff;color:var(--v);font-weight:800;border-radius:14px;padding:11px 16px;font-size:15px}
+  .sbox{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}
+  .sbtn{width:48px;height:48px;border-radius:16px;border:0;background:#efeaff;color:var(--v);font-size:26px;font-weight:800;line-height:1}
+  .sbtn:active{transform:scale(.88)}.sbox b{font-size:26px;min-width:36px;text-align:center}
+  .tap{font-size:13px;font-weight:700;color:var(--mute);margin-top:12px;text-align:center}
+  canvas{cursor:pointer}
+  .x{border:0;background:#ffe4ea;color:#be123c;width:38px;height:38px;border-radius:12px;font-size:16px;font-weight:800;flex:none}
+  .rec input[type=number]{width:110px;padding:8px 12px;border-radius:12px}
+  .dh{font-size:13px;font-weight:800;color:var(--mute);margin:18px 0 6px}.dh:first-child{margin-top:0}
+  .dnav{display:flex;gap:10px}.dnav button{width:52px;border:0;border-radius:16px;background:#efeaff;color:var(--v);font-size:26px;font-weight:800}
+  .dnav input{flex:1;text-align:center;font-weight:800}
+  .pill.r{background:#ffe4ea;color:#be123c}
+  details.school summary{list-style:none;cursor:pointer}details.school summary::-webkit-details-marker{display:none}
+  .school .cl{margin-top:12px;border-top:1px dashed var(--line);padding-top:6px}
+  .school .cl div{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;padding:7px 0;border-bottom:1px solid #f3f0ff}
+  .school .cl span:last-child{color:var(--mute)}
+  .sh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .sh h3{margin:0 0 10px}
+  .jr{padding:13px 0;border-bottom:1px solid var(--line)}.jr:last-child{border:0}.jr b{display:block;margin-bottom:9px;font-size:15px}
+  .jb{display:flex;gap:6px;flex-wrap:wrap}.jb button{border:1px solid var(--line);background:#fff;color:var(--mute);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:800}
+  .jb button.on{color:#fff;border-color:transparent}.jb .g.on{background:var(--ok)}.jb .n0.on{background:var(--bad)}.jb .n1.on{background:var(--amber)}.jb .n2.on{background:var(--v)}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -192,6 +223,7 @@
   <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5"/><path d="M5 20h14"/></symbol>
   <symbol id="i-bars" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 13l4 4 10-10"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></symbol>
 </svg>
 
@@ -226,170 +258,198 @@
 
   <!-- DİREKTOR -->
   <main id="directorView" class="hidden">
-
-    <section class="tab" data-tab="home">
-      <div class="card hero">
-        <div class="date-line">Bu gün <b id="todayDate"></b></div>
-        <div class="slots">
-          <div class="chip n" id="chip10"><span class="t">10:00</span>0 sinif</div>
-          <div class="chip n" id="chip13"><span class="t">13:00</span>0 sinif</div>
+    <section class="tab" data-tab="check">
+      <div id="pick">
+        <div class="card">
+          <div class="date-line">Bu gün <b id="todayDate"></b></div>
+          <div class="seg" id="slotSeg"><button data-s="10:00">10:00</button><button data-s="13:00">13:00</button></div>
+          <div class="prog"><div class="bar"><div class="tr"><i id="progBar"></i></div></div><small id="progTxt"></small></div>
         </div>
-        <button class="btn cta" id="openCheck"><svg class="ic"><use href="#i-cam"/></svg>Sinfi yoxla</button>
+        <div class="card">
+          <h2>Sinfi seçin</h2><p class="hint">Yoxlamaq üçün sinfə toxunun</p>
+          <div class="cgrid" id="cgrid"></div>
+          <button class="btn sec" id="addClsBtn">+ Sinif əlavə et</button>
+          <div id="addBox" class="hidden">
+            <div class="row"><div><label for="nCls">Sinif</label><input id="nCls" placeholder="məs. 7a"></div>
+            <div><label for="nRos">Şagird sayı</label><input id="nRos" type="number" inputmode="numeric" min="1" placeholder="25"></div></div>
+            <button class="btn" id="saveCls">Əlavə et</button>
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <h2>Bu günün icmalı</h2>
-        <p class="hint">Qeyd etdiyiniz siniflər üzrə</p>
-        <div class="tiles">
-          <div class="tile"><b id="hClasses">0</b><span>Sinif</span></div>
-          <div class="tile"><b id="hAtt">—</b><span>Davamiyyət</span></div>
-          <div class="tile"><b id="hUni">—</b><span>Forma</span></div>
+
+      <div id="work" class="hidden">
+        <div class="card">
+          <div class="top"><button class="back" id="backBtn">‹ Geri</button><b id="curCls"></b><span class="pill" id="curSlot"></span></div>
+          <div class="stage" id="stage">
+            <div class="ph"><svg class="ic"><use href="#i-cam"/></svg>Kamera açılır...</div>
+            <video id="video" playsinline muted autoplay class="hidden"></video>
+            <canvas id="canvas" class="hidden"></canvas>
+            <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+          </div>
+          <div id="msg"></div>
+          <div id="capBtns">
+            <button class="btn" id="snap" disabled><svg class="ic"><use href="#i-cam"/></svg>Şəkil çək</button>
+            <button class="btn sec" id="fileBtn"><svg class="ic"><use href="#i-img"/></svg>Qalereyadan seç</button>
+            <input type="file" id="file" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <div class="card hidden" id="resBox">
+          <h2>Nəticə</h2>
+          <p class="hint" id="absTxt"></p>
+          <div class="stats">
+            <div class="stat"><div class="ring" id="ringA"><b id="rPct">0%</b></div><span>Dərsdə</span>
+              <div class="sbox"><b id="vPresent">0</b></div></div>
+            <div class="stat"><div class="ring u" id="ringU"><b id="rUPct">0%</b></div><span>Məktəbli formasında</span>
+              <div class="sbox"><b id="vUni">0</b></div></div>
+          </div>
+          <button class="btn ok" id="save"><svg class="ic"><use href="#i-save"/></svg>Qeyd et</button>
+          <button class="btn sec" id="retake"><svg class="ic"><use href="#i-refresh"/></svg>Yenidən çək</button>
+          <p class="note">Şəkil heç bir yerə göndərilmir və saxlanmır, yalnız rəqəmlər qeyd olunur.</p>
         </div>
       </div>
     </section>
 
-    <section class="tab hidden" data-tab="check" id="checkCard">
-      <div class="card">
-        <h2>Yeni yoxlama</h2>
-        <p class="hint">Məlumatı doldurun, sonra sinfi çəkin</p>
-        <div class="row">
-          <div><label for="slot">Saat</label>
-            <select id="slot"><option>10:00</option><option>13:00</option></select></div>
-          <div><label for="cls">Sinif</label><input id="cls" placeholder="məs. 7a" autocapitalize="none"></div>
-        </div>
-        <div class="row">
-          <div><label for="roster">Siyahı sayı</label><input id="roster" type="number" inputmode="numeric" min="1" placeholder="25"></div>
-          <div><label for="uColor">Forma rəngi</label><input id="uColor" type="color" value="#1f2f5c"></div>
-        </div>
-        <label for="tol">Forma həssaslığı: <span id="tolVal">90</span></label>
-        <input id="tol" type="range" min="30" max="160" value="90">
+    <section class="tab hidden" data-tab="portal">
+      <div class="card"><h2>Dərsdən yayınma jurnalı</h2><p class="hint">Sinif və tarixi seçin, hər şagirdin vəziyyətinə toxunun, avtomatik saxlanır</p>
+        <div class="row"><div><label for="jCls">Sinif</label><select id="jCls"></select></div><div><label for="jDate">Tarix</label><input id="jDate" type="date"></div></div>
+        <div class="tiles" style="margin-top:14px;grid-template-columns:1fr 1fr"><div class="tile"><b id="jAbs">0</b><span>Yayınan</span></div><div class="tile"><b id="jAll">0</b><span>Sinifdə şagird</span></div></div>
       </div>
-
-      <div class="card">
-        <h2>Kamera</h2>
-        <div class="stage">
-          <div class="ph"><svg class="ic"><use href="#i-cam"/></svg>Kamera üçün aşağıdakı düyməyə toxunun</div>
-          <video id="video" playsinline muted autoplay class="hidden"></video>
-          <canvas id="canvas" class="hidden"></canvas>
-          <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
-        </div>
-        <div class="legend"><span><i style="background:#22c55e"></i>Formada</span><span><i style="background:#ef4444"></i>Formasız</span></div>
-        <div id="msg"></div>
-        <button class="btn" id="snap" disabled><svg class="ic"><use href="#i-cam"/></svg>Şəkil çək</button>
-        <button class="btn sec" id="retake"><svg class="ic"><use href="#i-refresh"/></svg>Yenidən çək</button>
-        <button class="btn sec" id="fileBtn"><svg class="ic"><use href="#i-img"/></svg>Kamera açılmırsa: şəkil seç</button>
-        <input type="file" id="file" accept="image/*" capture="environment" class="hidden">
-      </div>
-
-      <div class="card hidden" id="results">
-        <h2>Nəticə</h2>
-        <p class="hint">Sayma təxminidir, lazım olsa düzəldin</p>
-        <div class="stats">
-          <div class="stat">
-            <div class="ring" id="ringA"><b id="rPct">0%</b></div>
-            <div class="big"><em id="rPresent">0</em>nəfər</div>
-            <span>Dərsdə · davamiyyət</span>
-          </div>
-          <div class="stat">
-            <div class="ring u" id="ringU"><b id="rUPct">0%</b></div>
-            <div class="big"><em id="rUniform">0</em>nəfər</div>
-            <span>Məktəbli formasında</span>
-          </div>
-        </div>
-        <div class="row">
-          <div><label for="ePresent">Dərsdə (düzəliş)</label><input id="ePresent" type="number" inputmode="numeric" min="0"></div>
-          <div><label for="eUniform">Formada (düzəliş)</label><input id="eUniform" type="number" inputmode="numeric" min="0"></div>
-        </div>
-        <button class="btn ok" id="save"><svg class="ic"><use href="#i-save"/></svg>Qeyd et</button>
-        <p class="note">Şəkil heç bir yerə göndərilmir və saxlanmır, yalnız rəqəmlər qeyd olunur.</p>
-      </div>
+      <div class="card"><div id="jList"></div></div>
+      <div class="card"><button class="btn sec" id="stBtn" style="margin-top:0">+ Yeni şagird əlavə et</button>
+        <div id="stBox" class="hidden">
+          <div class="row"><div><label for="sSoy">Soyadı</label><input id="sSoy"></div><div><label for="sAd">Adı</label><input id="sAd"></div></div>
+          <div class="row"><div><label for="sAta">Ata adı</label><input id="sAta"></div><div><label for="sSin">Sinif</label><input id="sSin" placeholder="7-A"></div></div>
+          <div class="row"><div><label for="sUtis">UTİS kodu</label><input id="sUtis" inputmode="numeric"></div><div><label for="sFin">FİN kodu</label><input id="sFin" maxlength="7" style="text-transform:uppercase"></div></div>
+          <button class="btn" id="stSave">Saxla</button></div></div>
     </section>
 
-    <section class="tab hidden" data-tab="list">
+    <section class="tab hidden" data-tab="rep">
+      <div class="card"><h2>Məktəb hesabatı</h2><p class="hint">Yalnız öz məktəbinizin məlumatı Excel faylı kimi yüklənir</p>
+        <div class="row"><div><label for="dFrom">Başlanğıc</label><input id="dFrom" type="date"></div><div><label for="dTo">Son</label><input id="dTo" type="date"></div></div>
+        <button class="btn" id="dXls"><svg class="ic"><use href="#i-dl"/></svg>Sinif yoxlaması (Excel)</button>
+        <button class="btn sec" id="dAbs"><svg class="ic"><use href="#i-dl"/></svg>Dərsdən yayınma (Excel)</button>
+        <div id="dMsg" class="note"></div></div>
+    </section>
+
+    <section class="tab hidden" data-tab="set">
       <div class="card">
-        <h2>Son qeydlər</h2>
-        <p class="hint">Ən son 100 yoxlama</p>
-        <div id="rows"></div>
+        <h2>Forma rəngi</h2><p class="hint">Bir dəfə seçin, yadda qalır. Şəkildə yanlış sayılırsa həssaslığı dəyişin.</p>
+        <label for="uColor">Məktəbli forması</label><input id="uColor" type="color" value="#1f2f5c">
+        <label for="tol">Həssaslıq: <span id="tolVal">90</span></label><input id="tol" type="range" min="30" max="160" value="90">
       </div>
+      <div class="card"><h2>Siniflərim</h2><p class="hint">Şagird sayını dəyişə və ya sinfi silə bilərsiniz</p><div id="setCls"></div></div>
     </section>
   </main>
 
-  <!-- ADMİN / İDARƏ -->
+  <!-- ADMİN -->
   <main id="adminView" class="hidden">
-    <div class="card">
-      <h2>Məktəblər üzrə nəticə</h2>
-      <label for="adminDate">Tarix</label>
-      <input id="adminDate" type="date">
-    </div>
-    <div class="card">
-      <div class="tiles" id="adminSum">
-        <div class="tile"><b id="sSchools">0</b><span>Məktəb</span></div>
-        <div class="tile"><b id="sChecked">0</b><span>Yoxlanan</span></div>
-        <div class="tile"><b id="sAtt">—</b><span>Davamiyyət</span></div>
+    <section class="tab" data-tab="sum">
+      <div class="card"><div class="dnav"><button id="dPrev" aria-label="Əvvəlki gün">‹</button><input id="adminDate" type="date"><button id="dNext" aria-label="Sonrakı gün">›</button></div></div>
+      <div class="card">
+        <div class="tiles" style="grid-template-columns:1fr 1fr">
+          <div class="tile"><b id="sSchools">0</b><span>Ümumi məktəb</span></div>
+          <div class="tile"><b id="sChecked">0</b><span>Yoxlama edən</span></div>
+          <div class="tile"><b id="sAtt">—</b><span>Orta davamiyyət</span></div>
+          <div class="tile"><b id="sUni">—</b><span>Orta forma</span></div>
+        </div>
       </div>
-    </div>
-    <div class="card">
-      <div id="adminRows"></div>
-      <p class="note">Qırmızı xana həmin saatda yoxlama edilmədiyini göstərir. Hər xana: yoxlanılan sinif sayı və davamiyyət %.</p>
-    </div>
+      <div class="card hidden" id="missCard"><h2>Yoxlama olmayanlar</h2><p class="hint">Bu tarixdə qeyd göndərməyən məktəblər</p><div id="missList"></div></div>
+      <div class="card"><h2>Bütün məktəblər</h2><p class="hint">Məktəbə toxunun, siniflər açılsın</p>
+        <input id="q" placeholder="Məktəb axtar..."><div id="adminRows" style="margin-top:14px"></div></div>
+    </section>
+    <section class="tab hidden" data-tab="portal">
+      <div class="card"><div class="tiles" style="grid-template-columns:1fr 1fr">
+        <div class="tile"><b id="pSch">0</b><span>Məktəb</span></div><div class="tile"><b id="pStu">0</b><span>Şagird</span></div>
+        <div class="tile"><b id="pToday">0</b><span>Bu gün yayınan</span></div><div class="tile"><b id="pMonth">0</b><span>Bu ay yayınan</span></div></div></div>
+      <div id="pMain"><div class="card"><h2>Məktəblər</h2><p class="hint">Məktəbə toxunun, şagirdləri açılsın</p><div id="pRows"></div></div></div>
+      <div id="pSchool" class="hidden"><div class="card"><div class="top"><button class="back" id="pBack">‹ Məktəblər</button><b id="pName" style="font-size:17px"></b></div>
+        <input id="pq" placeholder="Şagird axtar..." style="margin-top:12px"><div id="pStud" style="margin-top:8px"></div></div></div>
+    </section>
+
+    \1\2<p class="hint">Bütün məktəblər üzrə ətraflı Excel: xülasə, günlər, yoxlamalar, yayınmalar</p>
+        <div class="row"><div><label for="repFrom">Başlanğıc</label><input id="repFrom" type="date"></div><div><label for="repTo">Son</label><input id="repTo" type="date"></div></div>
+        <button class="btn" id="csvBtn"><svg class="ic"><use href="#i-dl"/></svg>Hesabat (Excel)</button>
+        <button class="btn sec" id="copyBtn">Mətn hesabatı kopyala (WhatsApp)</button>
+        <div id="repMsg" class="note"></div>
+      </div>
+    </section>
   </main>
 
-  <!-- ALT NAVİQASİYA -->
   <nav class="nav hidden" id="dirNav">
-    <button data-go="home" class="active"><svg class="ic"><use href="#i-home"/></svg>Əsas</button>
-    <button data-go="check"><svg class="ic"><use href="#i-cam"/></svg>Yoxla</button>
-    <button data-go="list"><svg class="ic"><use href="#i-list"/></svg>Qeydlər</button>
+    <button data-go="check" class="active"><svg class="ic"><use href="#i-home"/></svg>Əsas</button>
+    <button data-go="portal"><svg class="ic"><use href="#i-list"/></svg>Portal</button>
+    <button data-go="rep"><svg class="ic"><use href="#i-dl"/></svg>Hesabat</button>
+    <button data-go="set"><svg class="ic"><use href="#i-gear"/></svg>Ayarlar</button>
   </nav>
   <nav class="nav hidden" id="admNav">
-    <button class="active" id="admTop"><svg class="ic"><use href="#i-bars"/></svg>Nəticələr</button>
+    <button data-ag="sum" class="active"><svg class="ic"><use href="#i-bars"/></svg>Xülasə</button>
+    <button data-ag="portal"><svg class="ic"><use href="#i-list"/></svg>Portal</button>
+    <button data-ag="rep"><svg class="ic"><use href="#i-dl"/></svg>Hesabat</button>
     <button id="adminRefresh"><svg class="ic"><use href="#i-refresh"/></svg>Yenilə</button>
-    <button id="adminCsv"><svg class="ic"><use href="#i-dl"/></svg>CSV</button>
   </nav>
 </div>
 
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
 <script>
-/* ===== AYARLAR — Supabase → Project Settings → API ===== */
+/* ===== AYARLAR ===== */
 const CONFIG = {
   SUPABASE_URL: "https://wfagjimyjvuazvofulke.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_GDCQZViZ1kLgYeRecYwQcA_f8PceevS"   // publishable açar (RLS ilə qorunur, açıq olması təhlükəsizdir)
+  SUPABASE_ANON_KEY: "sb_publishable_GDCQZViZ1kLgYeRecYwQcA_f8PceevS"
 };
-/* ======================================================= */
+const ORG = "Gəncə Daşkəsən Regional Təhsil İdarəsi";
+/* =================== */
 
 const $ = id => document.getElementById(id);
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 let session = null, profile = null, model = null, stream = null;
+let records = [], classes = [], cur = null, slot = "10:00", shot = null, st = { present: 0, uni: 0 };
+let cfg = { color: "#1f2f5c", tol: 90 };
+let adminData = [], adminNames = [];
 
-const today = () => new Date().toLocaleDateString("sv-SE"); // yerli tarix YYYY-MM-DD
+const today = () => new Date().toLocaleDateString("sv-SE");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const buzz = (ms = 15) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) {} };
+const LS = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+};
+const pct = (a, b) => b ? Math.round(a / b * 100) : null;
+const fmt = v => v === null ? "—" : v + "%";
+async function pages(make) {
+  let all = [], i = 0;
+  for (;;) { const { data, error } = await make().range(i, i + 999); if (error) return { error }; all = all.concat(data); if (data.length < 1000) break; i += 1000; }
+  return { data: all };
+}
+function xls(name, head, rows) {
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet([head, ...rows]); ws["!cols"] = head.map(h => ({ wch: Math.max(13, h.length + 3) }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Hesabat"); XLSX.writeFile(wb, name + ".xlsx"); return;
+  }
+  const blob = new Blob(["\ufeff" + [head, ...rows].map(l => l.join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name + ".csv"; a.click();
+}
+const sum = (rows, k) => rows.reduce((a, r) => a + (+r[k] || 0), 0);
 
 let toastTimer;
-function toast(t) {
-  const el = $("toast"); el.textContent = t; el.classList.add("show");
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
-}
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2300); }
 
-/* ---------- TABLAR ---------- */
-function setTab(name) {
-  if (name !== "check" && stream) { stopCam(); $("video").classList.add("hidden"); }
-  document.querySelectorAll("#directorView .tab").forEach(t => t.classList.toggle("hidden", t.dataset.tab !== name));
-  document.querySelectorAll("#dirNav button").forEach(b => b.classList.toggle("active", b.dataset.go === name));
+function showTab(root, name, navSel, attr) {
+  document.querySelectorAll(`#${root} .tab`).forEach(t => t.classList.toggle("hidden", t.dataset.tab !== name));
+  document.querySelectorAll(`${navSel} button[${attr}]`).forEach(b => b.classList.toggle("active", b.getAttribute(attr) === name));
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-document.querySelectorAll("#dirNav button").forEach(b => b.onclick = () => {
-  buzz(); setTab(b.dataset.go);
-  if (b.dataset.go === "check" && !stream && $("results").classList.contains("hidden") && $("canvas").classList.contains("hidden")) startCam();
-});
-$("admTop").onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+document.querySelectorAll("#dirNav button").forEach(b => b.onclick = () => { buzz(); if (b.dataset.go !== "check") leaveWork(); showTab("directorView", b.dataset.go, "#dirNav", "data-go"); if (b.dataset.go === "portal") loadPortal(); });
+document.querySelectorAll("#admNav button[data-ag]").forEach(b => b.onclick = () => { buzz(); showTab("adminView", b.dataset.ag, "#admNav", "data-ag"); if (b.dataset.ag === "portal") loadAdminPortal(); });
 
 /* ---------- GİRİŞ ---------- */
 $("loginBtn").onclick = async () => {
-  $("loginErr").textContent = "";
-  $("loginBtn").disabled = true;
+  $("loginErr").textContent = ""; $("loginBtn").disabled = true;
   const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
   $("loginBtn").disabled = false;
   if (error) { $("loginErr").textContent = "E-poçt və ya parol yanlışdır"; return; }
@@ -400,205 +460,380 @@ $("logout").onclick = async () => { stopCam(); await sb.auth.signOut(); location
 
 async function enter() {
   const { data } = await sb.auth.getSession();
-  session = data.session;
-  if (!session) return;
+  session = data.session; if (!session) return;
   const { data: p, error } = await sb.from("profiles").select("*").eq("user_id", session.user.id).maybeSingle();
-  if (error || !p) {
-    $("loginErr").textContent = "Profil tapılmadı. İdarəyə müraciət edin.";
-    await sb.auth.signOut(); return;
-  }
+  if (error || !p) { $("loginErr").textContent = "Profil tapılmadı. İdarəyə müraciət edin."; await sb.auth.signOut(); return; }
   profile = p;
   $("login").classList.add("hidden"); $("app").classList.remove("hidden");
   $("title").textContent = p.school_name;
   if (p.role === "admin") {
     $("adminView").classList.remove("hidden"); $("admNav").classList.remove("hidden");
-    $("adminDate").value = today(); loadAdmin();
+    $("adminDate").value = today(); $("repFrom").value = today(); $("repTo").value = today(); loadAdmin();
   } else {
     $("directorView").classList.remove("hidden"); $("dirNav").classList.remove("hidden");
-    let dt = new Date().toLocaleDateString("az", { weekday: "long", day: "numeric", month: "long" });
-    $("todayDate").textContent = dt || today();
-    const h = new Date().getHours() + new Date().getMinutes() / 60;
-    $("slot").value = h < 11.5 ? "10:00" : "13:00"; setTab("home"); loadRecords();
+    $("todayDate").textContent = new Date().toLocaleDateString("az", { weekday: "long", day: "numeric", month: "long" });
+    cfg = LS.get("cfg_" + session.user.id, cfg); classes = LS.get("cls_" + session.user.id, []);
+    $("uColor").value = cfg.color; $("tol").value = cfg.tol; $("tolVal").textContent = cfg.tol;
+    const h = new Date().getHours() + new Date().getMinutes() / 60; slot = h < 11.5 ? "10:00" : "13:00";
+    renderPick(); renderSet(); loadRecords();
+    $("dFrom").value = today().slice(0, 8) + "01"; $("dTo").value = today(); $("jDate").value = today(); $("jDate").max = today();
   }
 }
 enter();
 
-/* ---------- MODEL ---------- */
+/* ---------- SİNİFLƏR ---------- */
+const saveClasses = () => { classes.sort((a, b) => a.n.localeCompare(b.n, "az", { numeric: true })); LS.set("cls_" + session.user.id, classes); };
+function addClass(n, r) {
+  n = n.trim(); if (!n || !(r > 0)) return false;
+  const c = classes.find(x => x.n.toLowerCase() === n.toLowerCase());
+  if (c) c.r = r; else classes.push({ n, r });
+  saveClasses(); renderPick(); renderSet(); return true;
+}
+$("addClsBtn").onclick = () => { $("addBox").classList.toggle("hidden"); $("nCls").focus(); };
+$("saveCls").onclick = () => {
+  if (!addClass($("nCls").value, +$("nRos").value)) { toast("Sinif adı və şagird sayını yazın"); return; }
+  $("nCls").value = ""; $("nRos").value = ""; $("addBox").classList.add("hidden"); toast("Sinif əlavə olundu ✔");
+};
+
+function renderPick() {
+  document.querySelectorAll("#slotSeg button").forEach(b => b.classList.toggle("on", b.dataset.s === slot));
+  const doneMap = {}; records.filter(r => r.check_date === today() && r.slot === slot).forEach(r => doneMap[r.class_name] = r);
+  $("cgrid").innerHTML = classes.map(c => {
+    const d = doneMap[c.n];
+    return `<button class="cbtn ${d ? "done" : ""}" data-c="${esc(c.n)}"><b>${esc(c.n)}</b><small>${d ? "✓ " + d.present_pct + "%" : c.r + " şagird"}</small></button>`;
+  }).join("") || '<div class="empty" style="grid-column:1/-1">Hələ sinif yoxdur. Aşağıdan sinif əlavə edin.</div>';
+  const done = classes.filter(c => doneMap[c.n]).length;
+  $("progBar").style.width = pct(done, classes.length) + "%" ;
+  $("progTxt").textContent = classes.length ? `${slot} üzrə ${done} / ${classes.length} sinif yoxlanıb` : "Sinif əlavə edin";
+  if (!classes.length) $("addBox").classList.remove("hidden");
+}
+$("slotSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; slot = b.dataset.s; buzz(); renderPick(); };
+$("cgrid").onclick = e => {
+  const b = e.target.closest(".cbtn"); if (!b) return;
+  const c = classes.find(x => x.n === b.dataset.c); if (!c) return;
+  if (b.classList.contains("done") && !confirm(`${c.n} sinfi ${slot} üçün artıq qeyd olunub. Yenidən yoxlayıb əvəz edək?`)) return;
+  buzz(); startClass(c);
+};
+
+function startClass(c) {
+  cur = c; shot = null; st = { present: 0, uni: 0 };
+  $("curCls").textContent = c.n; $("curSlot").textContent = slot;
+  $("pick").classList.add("hidden"); $("work").classList.remove("hidden");
+  $("stage").classList.remove("hidden"); $("capBtns").classList.remove("hidden"); $("resBox").classList.add("hidden");
+  $("canvas").classList.add("hidden"); $("msg").textContent = "";
+  window.scrollTo({ top: 0, behavior: "smooth" }); startCam();
+}
+function leaveWork() { stopCam(); $("video").classList.add("hidden"); $("work").classList.add("hidden"); $("pick").classList.remove("hidden"); }
+$("backBtn").onclick = () => { leaveWork(); renderPick(); };
+
+/* ---------- MODEL və KAMERA ---------- */
 async function ensureModel() {
   if (model) return model;
   $("msg").textContent = "Model yüklənir (ilk dəfə 10-20 saniyə çəkə bilər)...";
   model = await cocoSsd.load({ base: "mobilenet_v2" });
-  $("msg").textContent = "";
-  return model;
+  $("msg").textContent = ""; return model;
 }
-
-/* ---------- KAMERA ---------- */
 async function startCam() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-    $("video").srcObject = stream;
-    $("video").classList.remove("hidden"); $("canvas").classList.add("hidden");
-    $("snap").disabled = true;
-    await ensureModel();
-    $("snap").disabled = false;
+    $("video").srcObject = stream; $("video").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("snap").disabled = true;
+    await ensureModel(); $("snap").disabled = false;
   } catch (e) {
-    $("msg").innerHTML = '<span class="err">Kamera açılmadı. İcazə verin və ya "şəkil seç" düyməsindən istifadə edin.</span>';
+    $("msg").innerHTML = '<span class="err">Kamera açılmadı. İcazə verin və ya "Qalereyadan seç" düyməsindən istifadə edin.</span>';
     try { await ensureModel(); } catch (_) {}
   }
 }
 function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
-
-$("openCheck").onclick = () => {
-  buzz(); setTab("check");
-  $("results").classList.add("hidden"); $("canvas").classList.add("hidden");
-  startCam();
-};
-$("retake").onclick = () => { $("results").classList.add("hidden"); $("canvas").classList.add("hidden"); startCam(); };
+$("retake").onclick = () => { $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden"); $("stage").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("msg").textContent = ""; startCam(); };
 $("fileBtn").onclick = () => $("file").click();
-$("tol").oninput = () => $("tolVal").textContent = $("tol").value;
 $("snap").onclick = () => { buzz(30); const v = $("video"); analyze(v, v.videoWidth, v.videoHeight); };
 $("file").onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  const img = new Image();
-  img.onload = () => analyze(img, img.naturalWidth, img.naturalHeight);
-  img.src = URL.createObjectURL(f);
+  const img = new Image(); img.onload = () => analyze(img, img.naturalWidth, img.naturalHeight); img.src = URL.createObjectURL(f); e.target.value = "";
 };
 
 /* ---------- ANALİZ ---------- */
-function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
-
+const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 async function analyze(src, w, h) {
   $("msg").textContent = "Sayılır...";
   await ensureModel();
-  const cv = $("canvas"), ctx = cv.getContext("2d", { willReadFrequently: true });
-  cv.width = w; cv.height = h; ctx.drawImage(src, 0, 0, w, h);
-  stopCam(); $("video").classList.add("hidden"); cv.classList.remove("hidden");
-
-  const preds = await model.detect(cv, 100, 0.35);
-  const persons = preds.filter(p => p.class === "person" && p.score >= 0.35);
-  const target = hexToRgb($("uColor").value), tol = +$("tol").value;
-  let uniformCount = 0;
-  ctx.lineWidth = Math.max(2, w / 300);
-
-  persons.forEach(p => {
+  const base = document.createElement("canvas"); base.width = w; base.height = h;
+  const bx = base.getContext("2d", { willReadFrequently: true }); bx.drawImage(src, 0, 0, w, h);
+  stopCam(); $("video").classList.add("hidden");
+  const preds = await model.detect(base, 100, 0.35);
+  const target = hexToRgb(cfg.color), tol = +cfg.tol;
+  const persons = preds.filter(p => p.class === "person" && p.score >= 0.35).map(p => {
     const [x, y, bw, bh] = p.bbox;
     const sx = Math.max(0, Math.floor(x + bw * 0.25)), sy = Math.max(0, Math.floor(y + bh * 0.2));
     const sw = Math.max(1, Math.min(w - sx, Math.floor(bw * 0.5))), sh = Math.max(1, Math.min(h - sy, Math.floor(bh * 0.3)));
-    const d = ctx.getImageData(sx, sy, sw, sh).data;
-    let r = 0, g = 0, b = 0, n = 0;
+    const d = bx.getImageData(sx, sy, sw, sh).data; let r = 0, g = 0, b = 0, n = 0;
     for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
-    r /= n; g /= n; b /= n;
-    const isU = Math.hypot(r - target[0], g - target[1], b - target[2]) <= tol;
-    if (isU) uniformCount++;
-    ctx.strokeStyle = isU ? "#22c55e" : "#ef4444";
-    ctx.strokeRect(x, y, bw, bh);
+    return { x, y, bw, bh, u: Math.hypot(r / n - target[0], g / n - target[1], b / n - target[2]) <= tol };
   });
-
-  $("ePresent").value = persons.length;
-  $("eUniform").value = uniformCount;
-  $("results").classList.remove("hidden");
-  updateStats();
-  $("msg").textContent = persons.length ? "Yaşıl çərçivə — formada, qırmızı — formasız." : "Heç kim tapılmadı. Daha yaxşı işıqda və ya uzaqdan çəkin.";
-  setTimeout(() => $("results").scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+  shot = { base, persons, w, h };
+  st = { present: persons.length, uni: persons.filter(p => p.u).length };
+  $("canvas").classList.remove("hidden"); render();
+  $("msg").textContent = persons.length ? "" : "Heç kim tapılmadı. Daha yaxşı işıqda və ya uzaqdan çəkib yenidən cəhd edin.";
+  showResult();
+}
+function render() {
+  const cv = $("canvas"), ctx = cv.getContext("2d"); cv.width = shot.w; cv.height = shot.h; ctx.drawImage(shot.base, 0, 0);
+  ctx.lineWidth = Math.max(4, shot.w / 220);
+  shot.persons.forEach(p => { ctx.strokeStyle = p.u ? "#22c55e" : "#ef4444"; ctx.strokeRect(p.x, p.y, p.bw, p.bh); });
+}
+function showResult() { $("capBtns").classList.add("hidden"); $("resBox").classList.remove("hidden"); updateUI(); setTimeout(() => $("resBox").scrollIntoView({ behavior: "smooth", block: "start" }), 120); }
+function updateUI() {
+  const ap = pct(st.present, cur.r), up = pct(st.uni, st.present);
+  $("vPresent").textContent = st.present; $("vUni").textContent = st.uni;
+  $("rPct").textContent = fmt(ap); $("rUPct").textContent = fmt(up);
+  $("ringA").style.setProperty("--p", Math.min(100, ap || 0)); $("ringU").style.setProperty("--p", Math.min(100, up || 0));
+  $("absTxt").textContent = `${cur.n} sinfi · siyahıda ${cur.r} şagird · qayıb ${Math.max(0, cur.r - st.present)}`;
 }
 
-function updateStats() {
-  const present = +$("ePresent").value || 0, uni = +$("eUniform").value || 0, roster = +$("roster").value || 0;
-  const ap = roster ? Math.round(present / roster * 100) : null, up = present ? Math.round(uni / present * 100) : null;
-  $("rPresent").textContent = present;
-  $("rPct").textContent = ap === null ? "—" : ap + "%";
-  $("rUniform").textContent = uni;
-  $("rUPct").textContent = up === null ? "—" : up + "%";
-  $("ringA").style.setProperty("--p", Math.min(100, ap || 0));
-  $("ringU").style.setProperty("--p", Math.min(100, up || 0));
-}
-["ePresent", "eUniform", "roster"].forEach(id => $(id).addEventListener("input", updateStats));
-
-/* ---------- QEYD ET (Supabase) ---------- */
+/* ---------- QEYD ET ---------- */
 $("save").onclick = async () => {
-  const cls = $("cls").value.trim(), roster = +$("roster").value;
-  if (!cls || !roster) { $("msg").innerHTML = '<span class="err">Sinif adını və siyahı sayını yazın.</span>'; $("cls").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
-  const present = +$("ePresent").value || 0, uni = +$("eUniform").value || 0;
   const rec = {
-    user_id: session.user.id, school_name: profile.school_name,
-    check_date: today(), slot: $("slot").value, class_name: cls, roster, present,
-    present_pct: Math.round(present / roster * 100),
-    uniform: uni, uniform_pct: present ? Math.round(uni / present * 100) : 0
+    user_id: session.user.id, school_name: profile.school_name, check_date: today(), slot, class_name: cur.n, roster: cur.r,
+    present: st.present, present_pct: pct(st.present, cur.r) ?? 0, uniform: st.uni, uniform_pct: pct(st.uni, st.present) ?? 0
   };
   $("save").disabled = true;
   const { error } = await sb.from("checks").upsert(rec, { onConflict: "user_id,check_date,slot,class_name" });
   $("save").disabled = false;
   if (error) { $("msg").innerHTML = '<span class="err">Qeyd olunmadı: ' + esc(error.message) + '</span>'; return; }
-  buzz([20, 40, 20]);
-  toast("Qeyd olundu ✔");
-  $("msg").textContent = "";
-  $("results").classList.add("hidden"); $("canvas").classList.add("hidden");
-  $("cls").value = ""; await loadRecords(); setTab("home");
+  buzz([20, 40, 20]); toast(`${cur.n} — qeyd olundu ✔`);
+  leaveWork(); await loadRecords(); window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 async function loadRecords() {
-  const { data, error } = await sb.from("checks").select("*")
-    .order("check_date", { ascending: false }).order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await sb.from("checks").select("*").order("check_date", { ascending: false }).order("created_at", { ascending: false }).limit(300);
   if (error) return;
-  $("rows").innerHTML = data.map(r =>
-    `<div class="rec"><div class="badge">${esc(r.class_name)}</div>
-      <div class="info"><b>${esc(r.class_name)} · ${esc(r.slot)}</b><small>${esc(r.check_date)} · siyahı ${esc(r.roster)}</small></div>
-      <div class="nums"><span class="pill">Dərsdə ${esc(r.present)} · ${esc(r.present_pct)}%</span><span class="pill u">Forma ${esc(r.uniform)} · ${esc(r.uniform_pct)}%</span></div></div>`
-  ).join("") || '<div class="empty">Hələ qeyd yoxdur. İlk sinfi yoxlayın 📷</div>';
-  ["10:00", "13:00"].forEach(s => {
-    const n = data.filter(r => r.check_date === today() && r.slot === s).length;
-    const el = $("chip" + s.slice(0, 2));
-    el.innerHTML = `<span class="t">${s}</span>${n} sinif`; el.className = "chip " + (n ? "y" : "n");
-  });
-  const td = data.filter(r => r.check_date === today());
-  const pr = td.reduce((a, r) => a + r.present, 0), ro = td.reduce((a, r) => a + r.roster, 0), un = td.reduce((a, r) => a + r.uniform, 0);
-  $("hClasses").textContent = td.length;
-  $("hAtt").textContent = ro ? Math.round(pr / ro * 100) + "%" : "—";
-  $("hUni").textContent = pr ? Math.round(un / pr * 100) + "%" : "—";
+  records = data;
+  let added = false;
+  records.forEach(r => { if (!classes.find(c => c.n === r.class_name)) { classes.push({ n: r.class_name, r: r.roster }); added = true; } });
+  if (added) saveClasses();
+  renderPick(); renderSet();
 }
 
+/* ---------- AYARLAR ---------- */
+const saveCfg = () => LS.set("cfg_" + session.user.id, cfg);
+$("uColor").onchange = () => { cfg.color = $("uColor").value; saveCfg(); toast("Forma rəngi yadda qaldı"); };
+$("tol").oninput = () => { $("tolVal").textContent = $("tol").value; cfg.tol = +$("tol").value; saveCfg(); };
+function renderSet() {
+  $("setCls").innerHTML = classes.map(c => `<div class="rec"><div class="badge">${esc(c.n)}</div>
+    <div class="info"><b>${esc(c.n)}</b><small>şagird sayı</small></div>
+    <input type="number" inputmode="numeric" min="1" value="${c.r}" data-r="${esc(c.n)}"><button class="x" data-del="${esc(c.n)}" aria-label="Sil">✕</button></div>`).join("")
+    || '<div class="empty">Sinif yoxdur</div>';
+}
+$("setCls").onchange = e => { const i = e.target.closest("[data-r]"); if (!i) return; const c = classes.find(x => x.n === i.dataset.r); if (c && +i.value > 0) { c.r = +i.value; saveClasses(); renderPick(); toast("Yadda qaldı"); } };
+$("setCls").onclick = e => { const b = e.target.closest("[data-del]"); if (!b) return; if (!confirm(`${b.dataset.del} sinfi siyahıdan silinsin? (Köhnə qeydlər qalır)`)) return; classes = classes.filter(c => c.n !== b.dataset.del); saveClasses(); renderPick(); renderSet(); };
+
 /* ---------- İDARƏ PANELİ ---------- */
-let adminData = [];
-$("adminRefresh").onclick = () => { buzz(); loadAdmin(); toast("Yeniləndi"); };
-$("adminDate").onchange = loadAdmin;
+$("adminRefresh").onclick = () => { buzz(); loadAdmin(); if (!document.querySelector("#adminView [data-tab=portal]").classList.contains("hidden")) loadAdminPortal(); toast("Yeniləndi"); };
+$("adminDate").onchange = loadAdmin; $("q").oninput = renderAdmin;
+const shiftDay = n => { const d = new Date(($("adminDate").value || today()) + "T12:00:00"); d.setDate(d.getDate() + n); $("adminDate").value = d.toLocaleDateString("sv-SE"); loadAdmin(); };
+$("dPrev").onclick = () => shiftDay(-1); $("dNext").onclick = () => shiftDay(1);
 
 async function loadAdmin() {
   const date = $("adminDate").value || today();
-  const [{ data: checks }, { data: schools }] = await Promise.all([
-    sb.from("checks").select("*").eq("check_date", date),
-    sb.from("profiles").select("school_name").eq("role", "director")
+  $("adminRows").innerHTML = '<div class="empty">Yüklənir...</div>';
+  const [c, p] = await Promise.all([
+    pages(() => sb.from("checks").select("*").eq("check_date", date).order("school_name").order("slot").order("class_name")),
+    sb.from("profiles").select("school_name").eq("role", "director").limit(2000)
   ]);
-  adminData = checks || [];
-  const names = Array.from(new Set((schools || []).map(s => s.school_name).concat(adminData.map(c => c.school_name)))).sort();
-  const box = (s, rows) => {
-    if (!rows.length) return `<div class="slot-box miss"><b>${s}</b>Yoxlama yoxdur</div>`;
-    const pr = rows.reduce((a, r) => a + r.present, 0), ro = rows.reduce((a, r) => a + r.roster, 0);
-    return `<div class="slot-box"><b>${s}</b>${rows.length} sinif · ${ro ? Math.round(pr / ro * 100) : 0}%</div>`;
-  };
-  let checkedSchools = 0, totPr = 0, totRo = 0;
-  $("adminRows").innerHTML = names.map(n => {
-    const rows = adminData.filter(c => c.school_name === n);
-    const pr = rows.reduce((a, r) => a + r.present, 0), un = rows.reduce((a, r) => a + r.uniform, 0), ro = rows.reduce((a, r) => a + r.roster, 0);
-    if (rows.length) { checkedSchools++; totPr += pr; totRo += ro; }
-    const ap = rows.length && ro ? Math.round(pr / ro * 100) : null, up = rows.length && pr ? Math.round(un / pr * 100) : null;
-    return `<div class="school"><h3>${esc(n)}</h3>
-      <div class="sl">${box("10:00", rows.filter(r => r.slot === "10:00"))}${box("13:00", rows.filter(r => r.slot === "13:00"))}</div>
-      <div class="bar"><div class="lbl"><span>Davamiyyət</span><span>${ap === null ? "—" : ap + "%"}</span></div><div class="tr"><i style="width:${ap || 0}%"></i></div></div>
-      <div class="bar u"><div class="lbl"><span>Forma</span><span>${up === null ? "—" : up + "%"}</span></div><div class="tr"><i style="width:${up || 0}%"></i></div></div></div>`;
-  }).join("") || '<div class="empty">Məlumat yoxdur</div>';
-  $("sSchools").textContent = names.length;
-  $("sChecked").textContent = checkedSchools;
-  $("sAtt").textContent = totRo ? Math.round(totPr / totRo * 100) + "%" : "—";
+  if (c.error || p.error) { $("adminRows").innerHTML = `<div class="empty err">Məlumat alınmadı: ${esc((c.error || p.error).message)}<br>Supabase-də supabase-duzelis.sql faylını işə salın.</div>`; return; }
+  adminData = c.data || [];
+  adminNames = Array.from(new Set(p.data.map(s => s.school_name).concat(adminData.map(r => r.school_name)))).sort((a, b) => a.localeCompare(b, "az"));
+  renderAdmin();
+}
+function schoolStats(n) {
+  const rows = adminData.filter(r => r.school_name === n);
+  return { n, rows, ap: pct(sum(rows, "present"), sum(rows, "roster")), up: pct(sum(rows, "uniform"), sum(rows, "present")) };
+}
+function renderAdmin() {
+  const all = adminNames.map(schoolStats), checked = all.filter(s => s.rows.length);
+  $("sSchools").textContent = all.length; $("sChecked").textContent = checked.length;
+  $("sAtt").textContent = fmt(pct(sum(adminData, "present"), sum(adminData, "roster"))); $("sUni").textContent = fmt(pct(sum(adminData, "uniform"), sum(adminData, "present")));
+  const miss = all.map(s => ({ n: s.n, m: ["10:00", "13:00"].filter(t => !s.rows.some(r => r.slot === t)) })).filter(x => x.m.length);
+  $("missCard").classList.toggle("hidden", !miss.length);
+  $("missList").innerHTML = miss.map(x => `<div class="rec"><div class="info"><b>${esc(x.n)}</b></div><span class="pill r">${x.m.length === 2 ? "heç yoxlama yoxdur" : x.m[0] + " yoxdur"}</span></div>`).join("");
+  const q = $("q").value.trim().toLowerCase();
+  const list = all.filter(s => s.n.toLowerCase().includes(q)).sort((a, b) => (a.rows.length ? 1 : 0) - (b.rows.length ? 1 : 0) || (a.ap ?? 0) - (b.ap ?? 0));
+  const box = (t, rows) => rows.length
+    ? `<div class="slot-box"><b>${t}</b>${rows.length} sinif · ${fmt(pct(sum(rows, "present"), sum(rows, "roster")))}</div>` : `<div class="slot-box miss"><b>${t}</b>Yoxdur</div>`;
+  $("adminRows").innerHTML = list.map(s => `<details class="school"><summary>
+      <div class="sh"><h3>${esc(s.n)}</h3><span class="pill">${s.rows.length} qeyd</span></div>
+      <div class="sl">${box("10:00", s.rows.filter(r => r.slot === "10:00"))}${box("13:00", s.rows.filter(r => r.slot === "13:00"))}</div>
+      <div class="bar"><div class="lbl"><span>Davamiyyət</span><span>${fmt(s.ap)}</span></div><div class="tr"><i style="width:${s.ap || 0}%"></i></div></div>
+      <div class="bar u"><div class="lbl"><span>Forma</span><span>${fmt(s.up)}</span></div><div class="tr"><i style="width:${s.up || 0}%"></i></div></div></summary>
+      <div class="cl">${s.rows.slice().sort((a, b) => a.slot.localeCompare(b.slot) || a.class_name.localeCompare(b.class_name, "az", { numeric: true })).map(r =>
+        `<div><span>${esc(r.slot)} · ${esc(r.class_name)}</span><span>${esc(r.present)}/${esc(r.roster)} (${esc(r.present_pct)}%) · forma ${esc(r.uniform_pct)}%</span></div>`).join("") || '<div><span>Qeyd yoxdur</span></div>'}</div></details>`
+  ).join("") || '<div class="empty">Məktəb tapılmadı</div>';
 }
 
-$("adminCsv").onclick = () => {
-  buzz();
-  const head = ["Tarix", "Saat", "Məktəb", "Sinif", "Siyahı sayı", "Dərsdə", "Davamiyyət %", "Formada", "Forma %"];
-  const lines = [head].concat(adminData.map(r => [r.check_date, r.slot, r.school_name, r.class_name, r.roster, r.present, r.present_pct, r.uniform, r.uniform_pct]));
-  const blob = new Blob(["\ufeff" + lines.map(l => l.join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = "sinif-yoxlamasi-" + ($("adminDate").value || today()) + ".csv"; a.click();
+async function fetchRange(p = "rep") {
+  const f = $(p + "From").value || today(), t = $(p + "To").value || f, m = $(p + "Msg");
+  m.textContent = "Yüklənir...";
+  const { data, error } = await pages(() => sb.from("checks").select("*").gte("check_date", f).lte("check_date", t).order("check_date").order("school_name").order("slot").order("class_name"));
+  if (error) { m.innerHTML = '<span class="err">' + esc(error.message) + '</span>'; return null; }
+  m.textContent = `${data.length} qeyd tapıldı`; return { data, f, t };
+}
+async function chkXls(p) {
+  const r = await fetchRange(p); if (!r) return;
+  xls(`yoxlama_${r.f}_${r.t}`, ["Tarix", "Saat", "Məktəb", "Sinif", "Siyahı sayı", "Dərsdə", "Davamiyyət %", "Formada", "Forma %"],
+    r.data.map(x => [x.check_date, x.slot, x.school_name, x.class_name, x.roster, x.present, x.present_pct, x.uniform, x.uniform_pct]));
+}
+async function absXls(p) {
+  const f = $(p + "From").value || today(), t = $(p + "To").value || f, m = $(p + "Msg"); m.textContent = "Yüklənir...";
+  const { data, error } = await pages(() => sb.from("absences").select("id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").gte("tarix", f).lte("tarix", t).order("tarix").order("id"));
+  if (error) { m.innerHTML = '<span class="err">' + esc(error.message) + '</span>'; return; }
+  m.textContent = `${data.length} qeyd tapıldı`;
+  xls(`yayinma_${f}_${t}`, ["Tarix", "Soyadı", "Adı", "Ata adı", "Məktəb", "UTİS", "FİN", "Sinif", "Hadisə", "Görülən tədbir"],
+    data.map(x => [x.tarix, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.school_name, x.students?.utis, x.students?.fin, x.students?.sinif, x.nov, x.qeyd || ""]));
+}
+$("dXls").onclick = () => chkXls("d"); $("dAbs").onclick = () => absXls("d");
+$("csvBtn").onclick = fullReport;
+$("copyBtn").onclick = async () => {
+  const r = await fetchRange(); if (!r) return;
+  const names = Array.from(new Set(r.data.map(x => x.school_name))).sort((a, b) => a.localeCompare(b, "az"));
+  let t = `📊 ${ORG}\nSinif yoxlaması: ${r.f === r.t ? r.f : r.f + " — " + r.t}\n\n`;
+  names.forEach(n => { const rows = r.data.filter(x => x.school_name === n);
+    t += `🏫 ${n}: davamiyyət ${fmt(pct(sum(rows, "present"), sum(rows, "roster")))}, forma ${fmt(pct(sum(rows, "uniform"), sum(rows, "present")))} (${rows.length} yoxlama)\n`; });
+  t += `\nÜmumi: davamiyyət ${fmt(pct(sum(r.data, "present"), sum(r.data, "roster")))}, forma ${fmt(pct(sum(r.data, "uniform"), sum(r.data, "present")))}`;
+  try { await navigator.clipboard.writeText(t); toast("Kopyalandı ✔"); } catch (_) { prompt("Mətni kopyalayın:", t); }
 };
+
+/* ---------- PORTAL (köhnə tahsilganja saytının direktor bölməsi) ---------- */
+const NOV = ["Üzrsüz", "Üzrlü (xəstəlik)", "Üzrlü (digər)"], NOVS = ["Üzrsüz", "Xəstəlik", "Üzrlü"];
+let stu = [], absMap = {};
+async function loadPortal() {
+  const { data, error } = await pages(() => sb.from("students").select("*").eq("school_name", profile.school_name).order("id"));
+  if (error) { $("jList").innerHTML = `<div class="empty err">${esc(error.message)}<br>Supabase-də portal-schema.sql faylını işə salın.</div>`; return; }
+  stu = data.sort((a, b) => a.soyad.localeCompare(b.soyad, "az") || a.ad.localeCompare(b.ad, "az"));
+  const cs = [...new Set(stu.map(s => s.sinif))].sort((a, b) => a.localeCompare(b, "az", { numeric: true })), keep = $("jCls").value;
+  $("jCls").innerHTML = cs.map(c => `<option>${esc(c)}</option>`).join(""); if (cs.includes(keep)) $("jCls").value = keep;
+  loadJournal();
+}
+async function loadJournal() {
+  const ids = stu.filter(s => s.sinif === $("jCls").value).map(s => s.id); absMap = {};
+  if (ids.length) {
+    const { data } = await sb.from("absences").select("student_id,nov").eq("tarix", $("jDate").value || today()).in("student_id", ids);
+    (data || []).forEach(a => absMap[a.student_id] = a.nov);
+  }
+  renderJ();
+}
+function renderJ() {
+  const list = stu.filter(s => s.sinif === $("jCls").value);
+  $("jAll").textContent = list.length; $("jAbs").textContent = list.filter(s => absMap[s.id]).length;
+  $("jList").innerHTML = list.map(s => `<div class="jr"><b>${esc(s.soyad)} ${esc(s.ad)} ${esc(s.ata_adi)}</b><div class="jb" data-sid="${s.id}">
+    <button data-n="" class="g ${absMap[s.id] ? "" : "on"}">Gəlib</button>${NOV.map((n, i) => `<button data-n="${n}" class="n${i} ${absMap[s.id] === n ? "on" : ""}">${NOVS[i]}</button>`).join("")}</div></div>`).join("")
+    || '<div class="empty">Bu sinifdə şagird yoxdur. Aşağıdan əlavə edin.</div>';
+}
+$("jCls").onchange = loadJournal; $("jDate").onchange = loadJournal;
+$("jList").onclick = async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const sid = +b.parentElement.dataset.sid, nov = b.dataset.n, d = $("jDate").value || today(); buzz(10);
+  const { error } = nov
+    ? await sb.from("absences").upsert({ student_id: sid, tarix: d, nov, school_name: profile.school_name, user_id: session.user.id }, { onConflict: "student_id,tarix" })
+    : await sb.from("absences").delete().eq("student_id", sid).eq("tarix", d);
+  if (error) { toast("Xəta: " + error.message); return; }
+  if (nov) absMap[sid] = nov; else delete absMap[sid]; renderJ();
+};
+$("stBtn").onclick = () => $("stBox").classList.toggle("hidden");
+$("stSave").onclick = async () => {
+  const v = id => $(id).value.trim().replace(/\s+/g, " "), f = { soyad: v("sSoy"), ad: v("sAd"), ata_adi: v("sAta"), sinif: v("sSin"), utis: v("sUtis"), fin: v("sFin").toUpperCase() };
+  if (!Object.values(f).every(Boolean)) return toast("Bütün xanaları doldurun");
+  if (!/^[A-Z0-9]{7}$/.test(f.fin)) return toast("FİN kod 7 simvol olmalıdır");
+  if (!/^\d+$/.test(f.utis)) return toast("UTİS kod yalnız rəqəm olmalıdır");
+  const { error } = await sb.from("students").insert({ ...f, school_name: profile.school_name });
+  if (error) return toast(error.code === "23505" ? "Bu FİN kodlu şagird artıq var" : "Xəta: " + error.message);
+  ["sSoy", "sAd", "sAta", "sUtis", "sFin"].forEach(i => $(i).value = ""); toast("Şagird əlavə olundu ✔");
+  await loadPortal(); $("jCls").value = f.sinif; loadJournal();
+};
+
+/* ---------- İDARƏ: ətraflı Excel hesabatı ---------- */
+const fill = argb => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
+const bd = () => { const l = { style: "thin", color: { argb: "FFD9D4F0" } }; return { top: l, left: l, bottom: l, right: l }; };
+const azd = d => d ? d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) : "";
+function mkSheet(wb, name, sub, head, rows, widths, pc = [], total) {
+  const n = head.length, ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 4, showGridLines: false }] });
+  ws.mergeCells(1, 1, 1, n); ws.mergeCells(2, 1, 2, n);
+  const t = ws.getCell(1, 1); t.value = ORG; t.font = { bold: true, size: 15, color: { argb: "FFFFFFFF" } }; t.fill = fill("FF2563EB"); t.alignment = { vertical: "middle", indent: 1 }; ws.getRow(1).height = 32;
+  const u = ws.getCell(2, 1); u.value = sub; u.font = { italic: true, color: { argb: "FF475569" } }; u.alignment = { indent: 1 };
+  const h = ws.getRow(4); h.height = 30;
+  head.forEach((v, i) => { const c = h.getCell(i + 1); c.value = v; c.font = { bold: true, color: { argb: "FFFFFFFF" } }; c.fill = fill("FF7C3AED"); c.alignment = { horizontal: "center", vertical: "middle", wrapText: true }; c.border = bd(); });
+  const put = (row, r, bold, bg) => r.forEach((v, i) => { const c = row.getCell(i + 1); c.value = v; c.border = bd(); if (bg) c.fill = fill(bg); if (bold) c.font = { bold: true };
+    if (typeof v === "number") { c.alignment = { horizontal: "center" }; if (pc.includes(i + 1)) c.numFmt = '0"%"'; } else if (v === "—") c.alignment = { horizontal: "center" }; });
+  rows.forEach((r, i) => put(ws.getRow(5 + i), r, false, i % 2 ? "FFF5F3FF" : null));
+  if (total) put(ws.getRow(5 + rows.length), total, true, "FFE0E7FF");
+  widths.forEach((w, i) => ws.getColumn(i + 1).width = w);
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4 + rows.length, column: n } };
+}
+async function fullReport() {
+  const f = $("repFrom").value || today(), t = $("repTo").value || f, m = $("repMsg"); m.textContent = "Hazırlanır, bir az gözləyin...";
+  if (!window.ExcelJS) { m.innerHTML = '<span class="err">Excel modulu yüklənmədi. İnterneti yoxlayıb səhifəni yeniləyin.</span>'; return; }
+  const [c, a, s, p] = await Promise.all([
+    pages(() => sb.from("checks").select("*").gte("check_date", f).lte("check_date", t).order("check_date").order("school_name").order("slot").order("class_name")),
+    pages(() => sb.from("absences").select("id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").gte("tarix", f).lte("tarix", t).order("tarix").order("id")),
+    pages(() => sb.from("students").select("school_name").order("id")),
+    pages(() => sb.from("profiles").select("school_name").eq("role", "director").order("school_name"))
+  ]);
+  const er = c.error || a.error || s.error || p.error;
+  if (er) { m.innerHTML = '<span class="err">' + esc(er.message) + '</span>'; return; }
+  const stc = {}; s.data.forEach(x => stc[x.school_name] = (stc[x.school_name] || 0) + 1);
+  const names = [...new Set([...p.data, ...c.data, ...a.data].map(x => x.school_name))].sort((x, y) => x.localeCompare(y, "az"));
+  const P = (rows, k1, k2) => pct(sum(rows, k1), sum(rows, k2)) ?? "—";
+  const sub = `Hesabat dövrü: ${azd(f)} — ${azd(t)}   ·   Hazırlanma tarixi: ${azd(today())}`;
+  const wb = new ExcelJS.Workbook(); wb.creator = ORG;
+  const srows = names.map((n, i) => { const cr = c.data.filter(x => x.school_name === n), ar = a.data.filter(x => x.school_name === n), nu = ar.filter(x => x.nov === "Üzrsüz").length;
+    return [i + 1, n, stc[n] || 0, cr.length, P(cr, "present", "roster"), P(cr, "uniform", "present"), ar.length, nu, ar.length - nu]; });
+  mkSheet(wb, "Xülasə", sub, ["№", "Məktəb", "Şagird sayı", "Yoxlama sayı", "Davamiyyət %", "Forma %", "Yayınma (cəmi)", "Üzrsüz", "Üzrlü"], srows, [6, 44, 13, 13, 14, 11, 15, 11, 11], [5, 6],
+    ["", "CƏMİ", s.data.length, c.data.length, P(c.data, "present", "roster"), P(c.data, "uniform", "present"), a.data.length, a.data.filter(x => x.nov === "Üzrsüz").length, a.data.filter(x => x.nov !== "Üzrsüz").length]);
+  const days = [...new Set([...c.data.map(x => x.check_date), ...a.data.map(x => x.tarix)])].sort();
+  mkSheet(wb, "Günlər üzrə", sub, ["Tarix", "Yoxlayan məktəb", "Yoxlama sayı", "Davamiyyət %", "Forma %", "Yayınma sayı"],
+    days.map(d => { const cr = c.data.filter(x => x.check_date === d); return [azd(d), new Set(cr.map(x => x.school_name)).size, cr.length, P(cr, "present", "roster"), P(cr, "uniform", "present"), a.data.filter(x => x.tarix === d).length]; }),
+    [14, 17, 14, 14, 11, 14], [4, 5]);
+  mkSheet(wb, "Yoxlamalar", sub, ["Tarix", "Saat", "Məktəb", "Sinif", "Siyahı sayı", "Dərsdə", "Davamiyyət %", "Formada", "Forma %"],
+    c.data.map(x => [azd(x.check_date), x.slot, x.school_name, x.class_name, x.roster, x.present, x.present_pct, x.uniform, x.uniform_pct]), [13, 9, 40, 10, 12, 11, 14, 11, 11], [7, 9]);
+  mkSheet(wb, "Yayınmalar", sub, ["Tarix", "Məktəb", "Sinif", "Soyadı", "Adı", "Ata adı", "UTİS", "FİN", "Hadisə", "Görülən tədbir"],
+    a.data.map(x => [azd(x.tarix), x.school_name, x.students?.sinif, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.students?.utis, x.students?.fin, x.nov, x.qeyd || ""]), [13, 38, 9, 18, 16, 18, 14, 11, 20, 30]);
+  const buf = await wb.xlsx.writeBuffer(), el = document.createElement("a");
+  el.href = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })); el.download = `Hesabat_${f}_${t}.xlsx`; el.click();
+  m.textContent = `Hazırdır: ${names.length} məktəb, ${c.data.length} yoxlama, ${a.data.length} yayınma`; toast("Hesabat yükləndi ✔");
+}
+
+/* ---------- İDARƏ: Portal (köhnə saytın admin bölməsi) ---------- */
+let pS = [], pA = [], pCur = "";
+async function loadAdminPortal() {
+  $("pRows").innerHTML = '<div class="empty">Yüklənir...</div>';
+  const ms = today().slice(0, 8) + "01";
+  const [s, a, p] = await Promise.all([
+    pages(() => sb.from("students").select("id,school_name,soyad,ad,ata_adi,sinif").order("id")),
+    pages(() => sb.from("absences").select("student_id,tarix,school_name").gte("tarix", ms).order("id")),
+    pages(() => sb.from("profiles").select("school_name").eq("role", "director").order("school_name"))
+  ]);
+  const er = s.error || a.error || p.error;
+  if (er) { $("pRows").innerHTML = `<div class="empty err">${esc(er.message)}<br>Supabase-də portal-schema.sql faylını işə salın.</div>`; return; }
+  pS = s.data; pA = a.data;
+  const names = [...new Set([...p.data, ...pS, ...pA].map(x => x.school_name))].sort((x, y) => x.localeCompare(y, "az")), td = today();
+  $("pSch").textContent = names.length; $("pStu").textContent = pS.length;
+  $("pToday").textContent = pA.filter(x => x.tarix === td).length; $("pMonth").textContent = pA.length;
+  $("pRows").innerHTML = names.map(n => { const st = pS.filter(x => x.school_name === n), ab = pA.filter(x => x.school_name === n);
+    return `<div class="rec" data-m="${esc(n)}" style="cursor:pointer"><div class="info"><b>${esc(n)}</b><small>${st.length} şagird · ${new Set(st.map(x => x.sinif)).size} sinif</small></div>
+      <div class="nums"><span class="pill">Bu gün ${ab.filter(x => x.tarix === td).length}</span><span class="pill u">Bu ay ${ab.length}</span></div></div>`; }).join("") || '<div class="empty">Məlumat yoxdur</div>';
+  if (pCur) renderPS();
+}
+$("pRows").onclick = e => { const r = e.target.closest("[data-m]"); if (!r) return; pCur = r.dataset.m; $("pq").value = ""; $("pMain").classList.add("hidden"); $("pSchool").classList.remove("hidden"); window.scrollTo({ top: 0 }); renderPS(); };
+$("pBack").onclick = () => { pCur = ""; $("pSchool").classList.add("hidden"); $("pMain").classList.remove("hidden"); };
+$("pq").oninput = renderPS;
+function renderPS() {
+  $("pName").textContent = pCur;
+  const cnt = {}; pA.filter(x => x.school_name === pCur).forEach(x => cnt[x.student_id] = (cnt[x.student_id] || 0) + 1);
+  const q = $("pq").value.trim().toLowerCase();
+  const l = pS.filter(x => x.school_name === pCur && `${x.soyad} ${x.ad} ${x.ata_adi} ${x.sinif}`.toLowerCase().includes(q))
+    .sort((x, y) => x.sinif.localeCompare(y.sinif, "az", { numeric: true }) || x.soyad.localeCompare(y.soyad, "az"));
+  $("pStud").innerHTML = l.slice(0, 300).map(x => `<div class="rec"><div class="badge">${esc(x.sinif)}</div><div class="info"><b>${esc(x.soyad)} ${esc(x.ad)}</b><small>${esc(x.ata_adi)}</small></div>
+    <div class="nums"><span class="pill ${cnt[x.id] ? "r" : ""}">Bu ay ${cnt[x.id] || 0}</span></div></div>`).join("") || '<div class="empty">Şagird tapılmadı</div>';
+}
 </script>
 </body>
 </html>
