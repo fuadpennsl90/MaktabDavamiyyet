@@ -240,6 +240,19 @@
   .fc.mid{backface-visibility:visible;-webkit-backface-visibility:visible;filter:brightness(.8)}
   .fc.m1{transform:translateZ(2px)}.fc.m2{transform:translateZ(-2px)}
   @keyframes spin{to{transform:rotateY(360deg)}}
+    .dt{position:relative;width:100%}
+  .dtv{border:2px solid var(--line);border-radius:16px;background:#faf9ff;padding:8px 16px;min-height:56px;display:flex;flex-direction:column;justify-content:center;pointer-events:none;text-align:left}
+  .dtv b{font-size:15px;font-weight:800;color:var(--ink)}.dtv small{font-size:12px;color:var(--mute);font-weight:600;text-transform:capitalize}
+  .dti{position:absolute!important;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0!important;border:0!important}
+  .dnav .dt{flex:1}
+  #hist .sheet{max-height:90vh}
+  .hhead{display:flex;justify-content:space-between;align-items:center;gap:10px}.hhead b{font-size:19px;font-weight:800}
+  #hSum:empty{display:none}
+  .hbox{background:#f3efff;border-radius:20px;padding:14px 16px 16px;margin-top:14px}
+  .hbox h3{font-size:14px;font-weight:800;margin:0 0 2px}
+  .hbox input,.hbox select{background:#fff}.hbox .dtv{background:#fff}
+  .hh{font-size:14px;font-weight:800;margin:20px 0 6px}
+  #hist .tiles{margin-top:14px}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -423,18 +436,25 @@
   </nav>
 </div>
 
-<div id="hist" class="hidden"><div class="sheet"><div class="top"><b id="hName" style="font-size:17px"></b><button class="back" id="hClose">Bağla</button></div>
-  <p class="hint" id="hSum" style="margin:10px 0"></p>
-  <div class="row" style="align-items:end"><div><label for="hDate">Bərpa tarixi</label><input id="hDate" type="date"></div><div><button class="btn ok" id="hRest" style="margin-top:0">Bərpa olundu</button></div></div>
-  <div class="row" style="margin-top:8px"><div><button class="btn sec" id="hEditBtn" style="margin-top:0">Redaktə</button></div><div><button class="btn sec" id="hDelBtn" style="margin-top:0;color:#be123c">Şagirdi sil</button></div></div>
-  <div class="row" style="margin-top:8px;align-items:end"><div><label for="hNov">Yayınma növü</label><select id="hNov"><option>Üzrsüz</option><option>Üzrlü (xəstəlik)</option><option>Üzrlü (digər)</option></select></div><div><label for="hQeyd">Görülən tədbir</label><input id="hQeyd" maxlength="200"></div></div>
-  <button class="btn" id="hAddAbs">Yayınma əlavə et (yuxarıdakı tarixə)</button>
-  <div id="hEdit" class="hidden" style="margin-top:10px">
-    <div class="row"><div><label for="eSoy">Soyadı</label><input id="eSoy"></div><div><label for="eAd">Adı</label><input id="eAd"></div></div>
-    <div class="row"><div><label for="eAta">Ata adı</label><input id="eAta"></div><div><label for="eSin">Sinif</label><input id="eSin"></div></div>
-    <div class="row"><div><label for="eUtis">UTİS kodu</label><input id="eUtis" inputmode="numeric"></div><div><label for="eFin">FİN kodu</label><input id="eFin" maxlength="7" style="text-transform:uppercase"></div></div>
-    <button class="btn" id="eSave">Dəyişikliyi saxla</button></div>
-  <div id="hList" style="margin-top:12px"></div></div></div>
+<div id="hist" class="hidden"><div class="sheet">
+  <div class="hhead"><b id="hName"></b><button class="back" id="hClose" aria-label="Bağla">✕</button></div>
+  <p class="hint" id="hSum" style="margin:8px 0 0"></p>
+  <div class="tiles"><div class="tile"><b id="hsT">0</b><span>Cəmi yayınma</span></div><div class="tile"><b id="hsU">0</b><span>Üzrsüz</span></div><div class="tile"><b id="hsZ">0</b><span>Üzrlü</span></div></div>
+  <div class="hbox"><h3>Yeni qeyd</h3>
+    <label for="hDate" style="margin-top:8px">Tarix</label><input id="hDate" type="date">
+    <div class="row"><div><label for="hNov">Növü</label><select id="hNov"><option>Üzrsüz</option><option>Üzrlü (xəstəlik)</option><option>Üzrlü (digər)</option></select></div><div><label for="hQeyd">Görülən tədbir</label><input id="hQeyd" maxlength="200" placeholder="məs. valideynlə danışıldı"></div></div>
+    <div class="row"><button class="btn" id="hAddAbs">Yayınma əlavə et</button><button class="btn ok" id="hRest">Bərpa olundu</button></div>
+  </div>
+  <div class="hh">Tarixçə</div><div id="hList"></div>
+  <div class="hbox"><h3>Şagird məlumatı</h3>
+    <div class="row"><button class="btn sec" id="hEditBtn" style="background:#fff">Redaktə</button><button class="btn sec" id="hDelBtn" style="background:#fff;color:#be123c">Şagirdi sil</button></div>
+    <div id="hEdit" class="hidden">
+      <div class="row"><div><label for="eSoy">Soyadı</label><input id="eSoy"></div><div><label for="eAd">Adı</label><input id="eAd"></div></div>
+      <div class="row"><div><label for="eAta">Ata adı</label><input id="eAta"></div><div><label for="eSin">Sinif</label><input id="eSin"></div></div>
+      <div class="row"><div><label for="eUtis">UTİS kodu</label><input id="eUtis" inputmode="numeric"></div><div><label for="eFin">FİN kodu</label><input id="eFin" maxlength="7" style="text-transform:uppercase"></div></div>
+      <button class="btn" id="eSave">Dəyişikliyi saxla</button></div>
+  </div>
+</div></div>
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -486,6 +506,24 @@ const sum = (rows, k) => rows.reduce((a, r) => a + (+r[k] || 0), 0);
 let toastTimer;
 function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2300); }
 
+/* ---------- AZƏRBAYCAN TARİXİ ---------- */
+const AZM = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktyabr", "noyabr", "dekabr"];
+const AZW = ["bazar", "bazar ertəsi", "çərşənbə axşamı", "çərşənbə", "cümə axşamı", "cümə", "şənbə"];
+const azl = d => { if (!d) return ""; const [y, m, k] = d.split("-"); return `${+k} ${AZM[+m - 1]} ${y}`; };
+const azw = d => d ? AZW[new Date(d + "T12:00:00").getDay()] : "";
+(function initDates() {
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  document.querySelectorAll('input[type="date"]').forEach(inp => {
+    const w = document.createElement("div"), v = document.createElement("div"); w.className = "dt"; v.className = "dtv";
+    inp.parentNode.insertBefore(w, inp); w.append(v, inp); inp.classList.add("dti");
+    const upd = () => { const x = desc.get.call(inp); v.innerHTML = x ? `<b>${azl(x)}</b><small>${azw(x)}</small>` : "<b>Tarix seçin</b>"; };
+    Object.defineProperty(inp, "value", { get() { return desc.get.call(this); }, set(x) { desc.set.call(this, x); upd(); } });
+    inp.addEventListener("input", upd); inp.addEventListener("change", upd);
+    inp.addEventListener("click", () => { try { inp.showPicker && inp.showPicker(); } catch (_) {} });
+    upd();
+  });
+})();
+
 function showTab(root, name, navSel, attr) {
   document.querySelectorAll(`#${root} .tab`).forEach(t => t.classList.toggle("hidden", t.dataset.tab !== name));
   document.querySelectorAll(`${navSel} button[${attr}]`).forEach(b => b.classList.toggle("active", b.getAttribute(attr) === name));
@@ -518,7 +556,7 @@ async function enter() {
     $("adminDate").value = today(); $("repFrom").value = today(); $("repTo").value = today(); loadAdmin();
   } else {
     $("directorView").classList.remove("hidden"); $("dirNav").classList.remove("hidden");
-    $("todayDate").textContent = new Date().toLocaleDateString("az", { weekday: "long", day: "numeric", month: "long" });
+    $("todayDate").textContent = azl(today()) + ", " + azw(today());
     cfg = { set: "goy", thr: 40, ...LS.get("cfg_" + session.user.id, {}) }; if (!SETS[cfg.set]) cfg.set = "goy"; cfg.thr = +cfg.thr || 40; classes = LS.get("cls_" + session.user.id, []);
     renderU(); $("tol").value = cfg.thr; $("tolVal").textContent = cfg.thr;
     const h = new Date().getHours() + new Date().getMinutes() / 60; slot = h < 11.5 ? "10:00" : "13:00";
@@ -748,7 +786,7 @@ async function loadAdmin() {
     pages(() => sb.from("checks").select("*").eq("check_date", date).order("school_name").order("slot").order("class_name")),
     sb.from("profiles").select("school_name").eq("role", "director").limit(2000)
   ]);
-  if (c.error || p.error) { $("adminRows").innerHTML = `<div class="empty err">Məlumat alınmadı: ${esc((c.error || p.error).message)}<br>Supabase-də supabase-duzelis.sql faylını işə salın.</div>`; return; }
+  if (c.error || p.error) { $("adminRows").innerHTML = `<div class="empty err">Məlumat alınmadı: ${esc((c.error || p.error).message)}<br>Məlumat yüklənmədi. Bir az sonra yenidən cəhd edin.</div>`; return; }
   adminData = c.data || [];
   adminNames = Array.from(new Set(p.data.map(s => s.school_name).concat(adminData.map(r => r.school_name)))).sort((a, b) => a.localeCompare(b, "az"));
   renderAdmin();
@@ -830,7 +868,7 @@ const NOV = ["Üzrsüz", "Üzrlü (xəstəlik)", "Üzrlü (digər)"], NOVS = ["�
 let stu = [], absMap = {}, noteMap = {};
 async function loadPortal() {
   const { data, error } = await pages(() => sb.from("students").select("*").eq("school_name", profile.school_name).order("id"));
-  if (error) { $("jList").innerHTML = `<div class="empty err">${esc(error.message)}<br>Supabase-də portal-schema.sql faylını işə salın.</div>`; return; }
+  if (error) { $("jList").innerHTML = `<div class="empty err">${esc(error.message)}<br>Məlumat yüklənmədi. Bir az sonra yenidən cəhd edin.</div>`; return; }
   stu = data.sort((a, b) => a.soyad.localeCompare(b.soyad, "az") || a.ad.localeCompare(b.ad, "az"));
   const cs = [...new Set(stu.map(s => s.sinif))].sort((a, b) => a.localeCompare(b, "az", { numeric: true })), keep = $("jCls").value;
   $("jCls").innerHTML = cs.map(c => `<option>${esc(c)}</option>`).join(""); if (cs.includes(keep)) $("jCls").value = keep;
@@ -911,10 +949,9 @@ async function openHist(sid) {
   const rows = [...data.map(x => ({ ...x, t: "absences" })), ...rs.map(x => ({ ...x, nov: "Bərpa olundu", t: "restorations" }))]
     .sort((x, y) => y.tarix.localeCompare(x.tarix) || (y.t === "restorations") - (x.t === "restorations"));
   const nu = data.filter(x => x.nov === "Üzrsüz").length;
-  $("hSum").textContent = (data.length ? `Cəmi ${data.length} yayınma · üzrsüz ${nu} · üzrlü ${data.length - nu}` : "Yayınma qeydi yoxdur")
-    + (R.error ? " · Bərpa cədvəli hələ yaradılmayıb (3-cü SQL)" : "");
-  $("hList").innerHTML = rows.map(x => `<div class="hr"><div class="info" style="flex:1"><b>${azd(x.tarix)}</b> <span class="pill ${x.t === "restorations" ? "" : x.nov === "Üzrsüz" ? "r" : "u"}">${esc(x.nov)}</span>
-    ${x.qeyd ? `<div class="hint" style="margin-top:4px">${esc(x.qeyd)}</div>` : ""}</div><button class="x" data-del="${x.id}" data-t="${x.t}">Sil</button></div>`).join("");
+  $("hSum").textContent = ""; $("hsT").textContent = data.length; $("hsU").textContent = nu; $("hsZ").textContent = data.length - nu;
+  $("hList").innerHTML = rows.map(x => `<div class="hr"><div class="info" style="flex:1"><b>${azl(x.tarix)}</b> <span class="pill ${x.t === "restorations" ? "" : x.nov === "Üzrsüz" ? "r" : "u"}">${esc(x.nov)}</span>
+    ${x.qeyd ? `<div class="hint" style="margin-top:4px">${esc(x.qeyd)}</div>` : ""}</div><button class="x" data-del="${x.id}" data-t="${x.t}">Sil</button></div>`).join("") || '<div class="empty">Qeyd yoxdur</div>';
 }
 $("hList").onclick = async e => {
   const b = e.target.closest("[data-del]"); if (!b || !confirm("Bu qeyd silinsin?")) return;
@@ -1036,7 +1073,7 @@ async function loadAdminPortal() {
     pages(() => sb.from("profiles").select("school_name").eq("role", "director").order("school_name"))
   ]);
   const er = s.error || a.error || p.error;
-  if (er) { $("pRows").innerHTML = `<div class="empty err">${esc(er.message)}<br>Supabase-də portal-schema.sql faylını işə salın.</div>`; return; }
+  if (er) { $("pRows").innerHTML = `<div class="empty err">${esc(er.message)}<br>Məlumat yüklənmədi. Bir az sonra yenidən cəhd edin.</div>`; return; }
   pS = s.data; pA = a.data;
   const names = [...new Set([...p.data, ...pS, ...pA].map(x => x.school_name))].sort((x, y) => x.localeCompare(y, "az")), td = today();
   $("pSch").textContent = names.length; $("pStu").textContent = pS.length;
