@@ -1208,5 +1208,76 @@ $("dbGo").onclick = async () => {
   $("dbGo").disabled = false;
 };
 </script>
+<style>
+.rp .school .cl div{align-items:center}
+.rp .rec[data-h]{cursor:pointer}
+.rp .rec[data-h]:active{background:#f6f4ff}
+.rp .sec-t{font-size:13px;font-weight:800;color:var(--mute);margin:14px 0 6px}
+</style>
+<script>
+/* ===== YAMAQ: bu bloku </body> teqindən əvvələ yapışdırın ===== */
+(function(){
+  /* 2. Köhnə saytdan köçürmə kartını sil */
+  const mg=$("dbGo"); if(mg){const c=mg.closest(".card"); if(c) c.remove();}
+
+  /* 1. Cədvəldə və siyahıda sətrə toxunanda şagirdin tarixçəsi açılsın */
+  const oa=window.absTable;
+  window.absTable=function(el,rows){oa(el,rows);el.querySelectorAll("tbody tr").forEach(tr=>{const b=tr.querySelector("[data-h]");if(b){tr.dataset.h=b.dataset.h;tr.style.cursor="pointer";}});};
+  const ops=window.renderPS;
+  window.renderPS=function(){ops();document.querySelectorAll("#pStud .rec").forEach(r=>{const b=r.querySelector("[data-h]");if(b){r.dataset.h=b.dataset.h;r.style.cursor="pointer";}});};
+
+  /* Şagird detalları (ata adı, UTİS, FİN, məktəb) tarixçənin başında */
+  const oh=window.openHist;
+  window.openHist=async function(id){
+    await oh(id); const s=hStu(); if(!s) return;
+    $("hSum").textContent=`${s.soyad} ${s.ad} ${s.ata_adi} · ${s.school_name||profile.school_name} · Sinif ${s.sinif} · UTİS ${s.utis} · FİN ${s.fin}`;
+  };
+
+  /* 3. Ekranda hesabat */
+  function addCard(viewSel,pre){
+    const tab=document.querySelector(viewSel+" [data-tab=rep]"); if(!tab) return;
+    const d=document.createElement("div"); d.className="card rp"; d.id=pre+"Scr";
+    d.innerHTML=`<h2>Ekranda hesabat</h2><p class="hint">Məktəbə toxunun, detallar açılsın. Şagirdə toxunun, bütün tarixçəsi açılsın.</p>
+      <div class="row"><button class="btn" data-run style="margin-top:0">Göstər</button><button class="btn sec" data-xl style="margin-top:0"><svg class="ic"><use href="#i-dl"/></svg>Excel</button></div>
+      <div data-out style="margin-top:14px"></div>`;
+    tab.insertBefore(d,tab.children[1]||null);
+    d.querySelector("[data-run]").onclick=()=>run(pre);
+    d.querySelector("[data-xl]").onclick=()=>$(pre==="rep"?"csvBtn":"dXls").click();
+    d.querySelector("[data-out]").onclick=e=>{
+      const r=e.target.closest("[data-h]"); if(!r) return;
+      const o=d._st[r.dataset.h]; if(o){const L=isAdm()?pS:stu; if(!L.find(x=>x.id===o.id)) L.push({...o,school_name:r.dataset.sch});}
+      openHist(+r.dataset.h);
+    };
+  }
+  addCard("#adminView","rep"); addCard("#directorView","d");
+  const ids={rep:["repFrom","repTo"],d:["dFrom","dTo"]};
+  async function run(pre){
+    const box=$(pre+"Scr"), out=box.querySelector("[data-out]"), f=$(ids[pre][0]).value||today(), t=$(ids[pre][1]).value||f;
+    const sch=isAdm()?null:profile.school_name; out.innerHTML='<div class="empty">Yüklənir...</div>';
+    const mk=q=>sch?q.eq("school_name",sch):q;
+    const [c,a]=await Promise.all([
+      pages(()=>mk(sb.from("checks").select("*").gte("check_date",f).lte("check_date",t)).order("check_date").order("slot").order("class_name")),
+      pages(()=>mk(sb.from("absences").select("id,student_id,tarix,nov,qeyd,school_name,students(id,soyad,ad,ata_adi,sinif,utis,fin)").gte("tarix",f).lte("tarix",t)).order("tarix").order("id"))]);
+    if(c.error||a.error){out.innerHTML=`<div class="empty err">${esc((c.error||a.error).message)}</div>`;return;}
+    box._st={}; a.data.forEach(x=>{if(x.students) box._st[x.student_id]={id:x.student_id,...x.students};});
+    const names=[...new Set([...c.data,...a.data].map(x=>x.school_name))].sort((x,y)=>x.localeCompare(y,"az"));
+    const nu=a.data.filter(x=>x.nov==="Üzrsüz").length;
+    const tile=(b,s)=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`;
+    let h=`<div class="tiles">${tile(names.length,"Məktəb")}${tile(c.data.length,"Yoxlama")}${tile(a.data.length,"Yayınma")}${tile(fmt(pct(sum(c.data,"present"),sum(c.data,"roster"))),"Davamiyyət")}${tile(fmt(pct(sum(c.data,"uniform"),sum(c.data,"present"))),"Forma")}${tile(nu,"Üzrsüz")}</div>
+      <p class="note">${azd(f)} — ${azd(t)}</p>`;
+    h+=names.map(n=>{
+      const cr=c.data.filter(x=>x.school_name===n), ar=a.data.filter(x=>x.school_name===n);
+      return `<details class="school compact"><summary><div class="sh"><h3>${esc(n)}</h3><span class="pill r">${ar.length} yayınma</span></div>
+        <div class="mini">Yoxlama <b>${cr.length}</b> · Davamiyyət <b>${fmt(pct(sum(cr,"present"),sum(cr,"roster")))}</b> · Forma <b>${fmt(pct(sum(cr,"uniform"),sum(cr,"present")))}</b></div></summary>
+        <div class="sec-t">Yoxlamalar</div><div class="cl">${cr.map(r=>`<div><span>${azd(r.check_date)} · ${esc(r.slot)} · ${esc(r.class_name)}</span><span>${r.present}/${r.roster} (${r.present_pct}%) · forma ${r.uniform_pct}%</span></div>`).join("")||'<div><span>Yoxlama yoxdur</span></div>'}</div>
+        <div class="sec-t">Yayınanlar</div>${ar.map(x=>{const s=x.students||{};return `<div class="rec" data-h="${x.student_id}" data-sch="${esc(n)}"><div class="badge">${esc(s.sinif)}</div><div class="info"><b>${esc(s.soyad)} ${esc(s.ad)} ${esc(s.ata_adi)}</b><small>${azd(x.tarix)}${x.qeyd?" · "+esc(x.qeyd):""}</small></div><span class="pill ${x.nov==="Üzrsüz"?"r":"u"}">${esc(x.nov)}</span></div>`;}).join("")||'<div class="empty">Yayınan yoxdur</div>'}
+      </details>`;}).join("")||'<div class="empty">Bu dövrdə məlumat yoxdur</div>';
+    out.innerHTML=h;
+  }
+  document.querySelectorAll("#admNav [data-ag=rep], #dirNav [data-go=rep]").forEach(b=>b.addEventListener("click",()=>setTimeout(()=>run(isAdm()?"rep":"d"),50)));
+  ["repFrom","repTo","dFrom","dTo"].forEach(i=>{const e=$(i); if(e) e.addEventListener("change",()=>run(i.startsWith("rep")?"rep":"d"));});
+})();
+</script>
+
 </body>
 </html>
