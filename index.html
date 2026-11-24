@@ -652,7 +652,7 @@ async function ensureModel() {
   if (!$("msg").querySelector(".err")) $("msg").textContent = "Model yüklənir (ilk dəfə 10-30 saniyə çəkə bilər)...";
   try { await tf.ready(); } catch (_) {}
   try { model = await cocoSsd.load({ base: "mobilenet_v2" }); }
-  catch (_) { model = await cocoSsd.load({ base: "lite_mobilenet_v2" }); }
+  catch (_) { try { model = await cocoSsd.load({ base: "lite_mobilenet_v2" }); } catch (e2) { await tf.setBackend("cpu"); await tf.ready(); model = await cocoSsd.load({ base: "lite_mobilenet_v2" }); } }
   if ($("msg").textContent.startsWith("Model yüklənir")) $("msg").textContent = "";
   return model;
 }
@@ -683,7 +683,7 @@ async function startCam() {
 function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
 $("retake").onclick = () => { $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden"); $("stage").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("msg").textContent = ""; startCam(); };
 $("fileBtn").onclick = () => $("file").click();
-$("snap").onclick = () => { buzz(30); const v = $("video"); analyze(v, v.videoWidth, v.videoHeight); };
+$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin və ya "Qalereyadan seç" düyməsini istifadə edin.</span>'; return; } analyze(v, v.videoWidth, v.videoHeight); };
 $("file").onchange = e => {
   const f = e.target.files[0]; if (!f) return;
   const img = new Image(); img.onload = () => analyze(img, img.naturalWidth, img.naturalHeight); img.src = URL.createObjectURL(f); e.target.value = "";
@@ -731,6 +731,22 @@ function share(d, pal) {
 /* ---------- ANALİZ ---------- */
 const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 async function analyze(src, w, h) {
+  let c;
+  try {
+    const k = Math.min(1, 1280 / Math.max(w, h)); c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+  } catch (e) { $("msg").innerHTML = '<span class="err">Şəkil oxunmadı. Yenidən cəhd edin.</span>'; return; }
+  try { await analyzeInner(c, c.width, c.height); }
+  catch (e1) {
+    try { await tf.setBackend("cpu"); await tf.ready(); await analyzeInner(c, c.width, c.height); }
+    catch (e2) {
+      $("canvas").classList.add("hidden"); $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden");
+      $("msg").innerHTML = '<span class="err">Şəkil analiz olunmadı (' + esc((e2 && e2.message) || e1.message || "xəta") + '). İnterneti yoxlayın.</span> <button class="hbtn" id="camRetry">Yenidən cəhd</button>';
+      $("camRetry").onclick = startCam;
+    }
+  }
+}
+async function analyzeInner(src, w, h) {
   $("msg").textContent = "Sayılır...";
   try { await ensureModel(); } catch (e) { $("msg").innerHTML = '<span class="err">Model yüklənmədi. İnterneti yoxlayıb yenidən cəhd edin.</span>'; return; }
   const base = document.createElement("canvas"); base.width = w; base.height = h;
