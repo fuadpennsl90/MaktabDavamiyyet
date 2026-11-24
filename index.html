@@ -346,6 +346,7 @@
         </div>
         <button class="btn sec" id="helpHome" style="margin:0 0 16px">📖 İstifadə təlimatı</button>
         <details class="card" id="setBox"><summary>⚙ Tənzimləmələr</summary>
+          <div class="sub"><h2>Forma nümunəsi</h2><p class="hint" id="calSt"></p><button class="btn sec" id="calReset" style="margin-top:0">Nümunəni sıfırla</button></div>
           <div class="sub"><label for="tol" style="margin-top:0">Uyğunluq həddi: <span id="tolVal">40</span>%</label><input id="tol" type="range" min="20" max="70" value="40">
             <p class="hint">Forması düzgün olan şagird qırmızı çıxırsa həddi azaldın, uyğun olmayan yaşıl çıxırsa artırın.</p></div>
           <div class="sub"><h2>Siniflərim</h2><p class="hint">Şagird sayını dəyişə və ya sinfi silə bilərsiniz</p><div id="setCls"></div></div>
@@ -378,8 +379,9 @@
               <div class="sbox"><b id="vUni">0</b></div></div>
           </div>
           <button class="btn ok" id="save"><svg class="ic"><use href="#i-save"/></svg>Qeyd et</button>
+          <button class="btn sec" id="calBtn">🎯 Yaşıl olanları forma nümunəsi et</button>
           <button class="btn sec" id="retake"><svg class="ic"><use href="#i-refresh"/></svg>Yenidən çək</button>
-          <p class="note">Yaşıl ✓ formada, qırmızı ✗ formada deyil. Səhv göstərilibsə, şəkildəki qutuya toxunaraq düzəldin. Şəkil heç bir yerə göndərilmir, yalnız rəqəmlər qeyd olunur.</p>
+          <p class="note">Forma səhv tanınırsa: düzgün formalı şagirdləri yaşıl, qalanlarını qırmızı edin (qutuya toxunun) və yuxarıdakı 🎯 düyməsinə basın. Sistem məktəbinizin formasını öyrənir. Yaşıl ✓ formada, qırmızı ✗ formada deyil. Səhv göstərilibsə, şəkildəki qutuya toxunaraq düzəldin. Şəkil heç bir yerə göndərilmir, yalnız rəqəmlər qeyd olunur.</p>
         </div>
       </div>
     </section>
@@ -421,8 +423,8 @@
         </div>
       </div>
       <div class="card hidden" id="missCard"><h2>Yoxlama olmayanlar</h2><p class="hint" id="missCnt">Bu tarixdə qeyd göndərməyən məktəblər</p><div id="missList"></div></div>
-      <details class="card" id="acBox"><summary>+ Məktəb üçün giriş yarat</summary>
-        <div class="sub"><label for="acSch" style="margin-top:0">Məktəbin adı</label><input id="acSch" placeholder="məs. 5 nömrəli tam orta məktəb">
+      <details class="card" id="acBox"><summary>⚙ Tənzimləmələr</summary>
+        <div class="sub"><h2>Məktəb hesabı yarat</h2><label for="acSch" style="margin-top:0">Məktəbin adı</label><input id="acSch" placeholder="məs. 5 nömrəli tam orta məktəb">
           <label for="acEm">Giriş (e-poçt)</label><input id="acEm" autocapitalize="none" autocomplete="off" placeholder="mekteb5 və ya mekteb5@mail.az">
           <label for="acPw">Parol</label><div class="row"><input id="acPw" autocomplete="off" autocapitalize="none"><button class="btn sec" id="acGen" style="margin-top:0;flex:0 0 auto;width:auto">Yenilə</button></div>
           <button class="btn" id="acGo">Hesab yarat</button>
@@ -703,7 +705,9 @@ function outfit(c) {
   const pa = `<path d="M36 80H104L108 146H80L70 100L60 146H32Z" fill="${c.low}" stroke="#0003" stroke-width="1"/>`;
   return `<svg viewBox="0 0 140 150" xmlns="http://www.w3.org/2000/svg">${sh}${ja}${pa}</svg>`;
 }
+function updCal() { const n = cfg.cal && cfg.cal.up ? cfg.cal.up.length : 0; $("calSt").textContent = n ? `Məktəbinizin forması ${n} şagirddən öyrənilib` : "Nümunə yoxdur, hazır dəstlər işləyir. Yoxlamadan sonra 🎯 düyməsi ilə öyrədin."; }
 function renderU() {
+  updCal();
   $("uGrid").innerHTML = Object.entries(SETS).map(([k, s]) => { const o = outfit(s.c);
     return `<button class="ucard ${k === cfg.set ? "on" : ""}" data-u="${k}" aria-label="${s.name}"><div class="scene"><div class="obj"><div class="fc mid m2">${o}</div><div class="fc mid m1">${o}</div><div class="fc fr">${o}</div><div class="fc bk">${o}</div></div></div><b>${s.name}</b><span class="ck">✓ Seçilib</span></button>`; }).join("");
 }
@@ -729,6 +733,12 @@ function share(d, pal) {
 }
 
 /* ---------- ANALİZ ---------- */
+function medLab(d) {
+  const L = [], A = [], B = [];
+  for (let i = 0; i < d.length; i += 12) { const l = rgbLab(d[i], d[i + 1], d[i + 2]); L.push(l[0]); A.push(l[1]); B.push(l[2]); }
+  const m = a => { a.sort((x, y) => x - y); return a[a.length >> 1] || 0; };
+  return [m(L), m(A), m(B)];
+}
 const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 async function analyze(src, w, h) {
   let c;
@@ -754,11 +764,23 @@ async function analyzeInner(src, w, h) {
   stopCam(); $("video").classList.add("hidden");
   const preds = await model.detect(base, 100, 0.35);
   const set = SETS[cfg.set] || SETS.goy, thr = (+cfg.thr || 40) / 100, upL = set.up.map(hexLab), loL = set.low.map(hexLab);
-  const persons = preds.filter(p => p.class === "person" && p.score >= 0.35).map(p => {
+  let cand = preds.filter(p => p.class === "person" && p.score >= 0.45 && p.bbox[2] * p.bbox[3] >= 0.004 * w * h).sort((m, n) => n.score - m.score), keep = [];
+  const iou = (A, B) => { const ix = Math.max(0, Math.min(A[0] + A[2], B[0] + B[2]) - Math.max(A[0], B[0])), iy = Math.max(0, Math.min(A[1] + A[3], B[1] + B[3]) - Math.max(A[1], B[1])), I = ix * iy; return I / (A[2] * A[3] + B[2] * B[3] - I); };
+  cand.forEach(p => { if (!keep.some(k => iou(k.bbox, p.bbox) > 0.5)) keep.push(p); });
+  const dT = 34 - (+cfg.thr || 40) * 0.3, cal = cfg.cal && cfg.cal.up && cfg.cal.up.length ? cfg.cal : null;
+  const dE = (A, B) => Math.sqrt(Math.pow((A[0] - B[0]) * .5, 2) + Math.pow(A[1] - B[1], 2) + Math.pow(A[2] - B[2], 2));
+  const near = (f, list) => Math.min(...list.map(c => dE(f, c)));
+  const persons = keep.map(p => {
     const [x, y, bw, bh] = p.bbox, standing = bh / bw > 2.0 && y + bh < h * 0.97;
-    const okUp = share(region(bx, x, y, bw, bh, 0.2, 0.8, standing ? 0.18 : 0.22, standing ? 0.5 : 0.62, w, h), upL) >= thr;
-    const okLow = standing ? share(region(bx, x, y, bw, bh, 0.25, 0.75, 0.62, 0.92, w, h), loL) >= thr : true;
-    return { x, y, bw, bh, u: okUp && okLow };
+    const upD = region(bx, x, y, bw, bh, 0.25, 0.75, standing ? 0.2 : 0.25, standing ? 0.48 : 0.6, w, h);
+    const loD = standing ? region(bx, x, y, bw, bh, 0.3, 0.7, 0.64, 0.9, w, h) : null;
+    const f = { up: medLab(upD), lo: loD ? medLab(loD) : null };
+    let u;
+    if (cal) { u = near(f.up, cal.up) <= dT && (!f.lo || !cal.lo || !cal.lo.length || near(f.lo, cal.lo) <= dT + 4); }
+    else {
+      const okUp = share(upD, upL) >= thr, okLow = standing ? share(loD, loL) >= thr : true; u = okUp && okLow;
+    }
+    return { x, y, bw, bh, u, f };
   });
   shot = { base, persons, w, h };
   st = { present: persons.length, uni: persons.filter(p => p.u).length };
@@ -813,6 +835,14 @@ async function loadRecords() {
 /* ---------- AYARLAR ---------- */
 const saveCfg = () => LS.set("cfg_" + session.user.id, cfg);
 $("uGrid").onclick = e => { const b = e.target.closest(".ucard"); if (!b) return; cfg.set = b.dataset.u; saveCfg(); buzz(); renderU(); toast("Forma dəsti: " + SETS[cfg.set].name); };
+$("calBtn").onclick = () => {
+  const ok = shot ? shot.persons.filter(p => p.u && p.f) : [];
+  if (!ok.length) return toast("Əvvəl düzgün formalı şagirdləri yaşıl edin");
+  const old = cfg.cal && cfg.cal.up ? cfg.cal : { up: [], lo: [] };
+  cfg.cal = { up: old.up.concat(ok.map(p => p.f.up)).slice(-24), lo: old.lo.concat(ok.filter(p => p.f.lo).map(p => p.f.lo)).slice(-24) };
+  saveCfg(); updCal(); buzz(); toast(`Forma nümunəsi saxlandı (${ok.length} şagird) ✔`);
+};
+$("calReset").onclick = () => { if (!confirm("Forma nümunəsi silinsin?")) return; delete cfg.cal; saveCfg(); updCal(); toast("Sıfırlandı"); };
 $("tol").oninput = () => { $("tolVal").textContent = $("tol").value; cfg.thr = +$("tol").value; saveCfg(); };
 function renderSet() {
   $("setCls").innerHTML = classes.map(c => `<div class="rec"><div class="badge">${esc(c.n)}</div>
@@ -1006,6 +1036,7 @@ const hStu = () => stu.find(x => x.id === hSid) || pS.find(x => x.id === hSid);
 const isAdm = () => profile && profile.role === "admin";
 const refreshAfter = async () => { if (isAdm()) await loadAdminPortal(); else loadJournal(); };
 async function openHist(sid) {
+  $("hEditBtn").closest(".hbox").classList.toggle("hidden", !isAdm());
   hSid = sid; const s = hStu(); if (!s) return;
   $("hName").textContent = `${s.soyad} ${s.ad} (${s.sinif})`; $("hSum").textContent = "Yüklənir..."; $("hList").innerHTML = "";
   $("hDate").value = $("jDate").value || today(); $("hEdit").classList.add("hidden"); $("hist").classList.remove("hidden");
@@ -1041,11 +1072,13 @@ $("hRest").onclick = async () => {
   toast("Bərpa qeydi əlavə olundu ✔"); openHist(hSid);
 };
 $("hEditBtn").onclick = () => {
+  if (!isAdm()) return;
   const s = hStu(); if (!s) return;
   $("eSoy").value = s.soyad; $("eAd").value = s.ad; $("eAta").value = s.ata_adi; $("eSin").value = s.sinif; $("eUtis").value = s.utis; $("eFin").value = s.fin;
   $("hEdit").classList.toggle("hidden");
 };
 $("eSave").onclick = async () => {
+  if (!isAdm()) return;
   const v = id => $(id).value.trim().replace(/\s+/g, " "), f = { soyad: v("eSoy"), ad: v("eAd"), ata_adi: v("eAta"), sinif: v("eSin"), utis: v("eUtis"), fin: v("eFin").toUpperCase() };
   if (!Object.values(f).every(Boolean)) return toast("Bütün xanaları doldurun");
   if (!/^[A-Z0-9]{7}$/.test(f.fin)) return toast("FİN kod 7 simvol olmalıdır");
@@ -1055,6 +1088,7 @@ $("eSave").onclick = async () => {
   toast("Saxlandı ✔"); if (isAdm()) { await loadAdminPortal(); } else { await loadPortal(); $("jCls").value = f.sinif; loadJournal(); } openHist(hSid);
 };
 $("hDelBtn").onclick = async () => {
+  if (!isAdm()) return;
   const s = hStu(); if (!s || !confirm(`${s.soyad} ${s.ad} və bütün qeydləri silinsin? Bu geri qaytarılmır.`)) return;
   await sb.from("absences").delete().eq("student_id", hSid); await sb.from("restorations").delete().eq("student_id", hSid);
   const { error } = await sb.from("students").delete().eq("id", hSid);
@@ -1340,10 +1374,10 @@ const l=document.createElement("link");l.rel="manifest";l.href=URL.createObjectU
   const D=(t,b,o)=>`<details${o?" open":""}><summary>${t}</summary>${b}</details>`;
   const dir=[
    D("1. Sistemə giriş",`<ol><li>Saytı açın.</li><li>Məktəbinizə verilən <b>girişi</b> və <b>parolu</b> yazın.</li><li><b>Daxil ol</b> düyməsinə basın.</li></ol><div class="tip">Giriş və parolu bilmirsinizsə, regional təhsil idarəsinə müraciət edin.</div>`,1),
-   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın. Və ya <b>Qalereyadan seç</b> edin.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
+   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın. Və ya <b>Qalereyadan seç</b> edin.</li><li>Forma səhv tanınırsa: düzgün formalı şagirdləri yaşıl, qalanlarını qırmızı edin və <b>🎯 Yaşıl olanları forma nümunəsi et</b> düyməsinə basın. Sistem məktəbinizin formasını öyrənir.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
    D("3. Kamera işləmirsə",`<ul><li>Brauzer kameraya icazə istəyəndə <b>İcazə ver</b> seçin.</li><li>Kamera başqa tətbiqdə açıqdırsa, onu bağlayın.</li><li>Alternativ olaraq <b>Qalereyadan seç</b> düyməsindən istifadə edin.</li><li>Forma düzgün olan şagird qırmızı çıxırsa, <b>Tənzimləmələr</b>-də uyğunluq həddini azaldın.</li></ul>`),
    D("4. Təhsildən yayınanlar",`<ol><li>Alt menyuda <b>Təhsildən Yayınanlar</b> bölməsini açın.</li><li>Sinfi və tarixi seçin.</li><li>Dərsə gəlməyən şagirdin yanında <b>Üzrsüz</b>, <b>Xəstəlik</b> və ya <b>Üzrlü</b> düyməsinə basın. Avtomatik saxlanır. Düzəliş üçün <b>Gəlib</b> düyməsinə basın.</li><li>İstəsəniz görülən tədbiri yazın (məs. valideynlə danışıldı).</li><li>Aşağıdakı <b>Yayınanlar cədvəli</b>-ndə həmin gün yayınan bütün şagirdlər görünür. Sətrə toxunsanız şagirdin bütün tarixçəsi açılır.</li></ol>`),
-   D("5. Şagird əlavə etmək, düzəltmək, silmək",`<ul><li><b>Yeni şagird:</b> <b>+ Yeni şagird əlavə et</b> düyməsinə basın. Soyad, ad, ata adı, sinif, UTİS (rəqəm) və FİN (7 simvol) yazıb saxlayın.</li><li><b>Düzəliş və ya silmə:</b> şagirdin yanındakı <b>Tarixçə</b> düyməsinə basın, aşağıda <b>Redaktə</b> və <b>Şagirdi sil</b> var.</li><li><b>Bərpa:</b> şagird dərsə qayıdıbsa, tarixçədə tarixi seçib <b>Bərpa olundu</b> düyməsinə basın.</li></ul>`),
+   D("5. Şagird əlavə etmək və tarixçə",`<ul><li><b>Yeni şagird:</b> <b>+ Yeni şagird əlavə et</b> düyməsinə basın. Soyad, ad, ata adı, sinif, UTİS (rəqəm) və FİN (7 simvol) yazıb saxlayın.</li><li><b>Düzəliş və ya silmə:</b> şagird məlumatını yalnız idarə (administrator) dəyişə və ya silə bilər. Səhv olsa idarəyə müraciət edin.</li><li><b>Bərpa:</b> şagird dərsə qayıdıbsa, tarixçədə tarixi seçib <b>Bərpa olundu</b> düyməsinə basın.</li></ul>`),
    D("6. Hesabat",`<ol><li>Alt menyuda <b>Hesabat</b> bölməsini açın.</li><li>Başlanğıc və son tarixi seçin.</li><li>Ekranda yoxlamalar və yayınanlar görünür. Şagirdə toxunsanız tarixçəsi açılır.</li><li><b>Excel</b> düyməsi ilə hesabatı telefona endirin.</li></ol>`),
    D("7. Telefona tətbiq kimi quraşdırmaq",`<ul><li><b>Android (Chrome):</b> yuxarıdakı ⋮ menyusu, sonra <b>Əsas ekrana əlavə et</b>.</li><li><b>iPhone (Safari):</b> <b>Paylaş</b> düyməsi, sonra <b>Əsas ekrana əlavə et</b>.</li></ul><div class="tip">Bundan sonra sayt ana ekrandakı ikondan tətbiq kimi açılır.</div>`)
   ].join("");
