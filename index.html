@@ -398,6 +398,13 @@
         </div>
       </div>
       <div class="card hidden" id="missCard"><h2>Yoxlama olmayanlar</h2><p class="hint">Bu tarixdə qeyd göndərməyən məktəblər</p><div id="missList"></div></div>
+      <details class="card" id="acBox"><summary>+ Məktəb üçün giriş yarat</summary>
+        <div class="sub"><label for="acSch" style="margin-top:0">Məktəbin adı</label><input id="acSch" placeholder="məs. 5 nömrəli tam orta məktəb">
+          <label for="acEm">Giriş (e-poçt)</label><input id="acEm" autocapitalize="none" autocomplete="off" placeholder="mekteb5 və ya mekteb5@mail.az">
+          <label for="acPw">Parol</label><div class="row"><input id="acPw" autocomplete="off" autocapitalize="none"><button class="btn sec" id="acGen" style="margin-top:0;flex:0 0 auto;width:auto">Yenilə</button></div>
+          <button class="btn" id="acGo">Hesab yarat</button>
+          <button class="btn sec" id="acPwOnly">Mövcud hesabın parolunu dəyiş</button>
+          <div id="acOut" class="note"></div></div></details>
       <div class="card"><h2>Bütün məktəblər</h2><p class="hint">Məktəbə toxunun, siniflər açılsın</p>
         <input id="q" placeholder="Məktəb axtar..."><div id="adminRows" style="margin-top:14px"></div></div>
     </section>
@@ -535,7 +542,7 @@ document.querySelectorAll("#admNav button[data-ag]").forEach(b => b.onclick = ()
 /* ---------- GİRİŞ ---------- */
 $("loginBtn").onclick = async () => {
   $("loginErr").textContent = ""; $("loginBtn").disabled = true;
-  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+  const { error } = await sb.auth.signInWithPassword({ email: (e => e.includes("@") ? e : e + "@mekteb.az")($("email").value.trim().toLowerCase()), password: $("password").value });
   $("loginBtn").disabled = false;
   if (error) { $("loginErr").textContent = "E-poçt və ya parol yanlışdır"; return; }
   await enter();
@@ -1097,6 +1104,34 @@ function renderPS() {
   $("pStud").innerHTML = l.slice(0, 300).map(x => `<div class="rec"><div class="badge">${esc(x.sinif)}</div><div class="info"><b>${esc(x.soyad)} ${esc(x.ad)}</b><small>${esc(x.ata_adi)}</small></div>
     <div class="nums"><span class="pill ${cnt[x.id] ? "r" : ""}">Bu ay ${cnt[x.id] || 0}</span><button class="hbtn" data-h="${x.id}">Tarixçə</button></div></div>`).join("") || '<div class="empty">Şagird tapılmadı</div>';
 }
+
+/* ---------- İDARƏ: məktəb üçün giriş yaratmaq ---------- */
+const genPw = () => { const c = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", a = new Uint32Array(8); crypto.getRandomValues(a); return [...a].map(n => c[n % c.length]).join(""); };
+const acEmail = () => { const e = $("acEm").value.trim().toLowerCase(); return e && !e.includes("@") ? e + "@mekteb.az" : e; };
+let acText = "";
+$("acPw").value = genPw();
+$("acGen").onclick = () => { $("acPw").value = genPw(); };
+const acErr = e => { const m = e.message || String(e); return /Could not find the function|schema cache/i.test(m) ? "Hesab funksiyası hələ qurulmayıb. Supabase-də 4-hesab-yarat.sql faylını işə salın." : m; };
+$("acGo").onclick = async () => {
+  const sch = $("acSch").value.trim(), em = acEmail(), pw = $("acPw").value.trim(), o = $("acOut");
+  if (!sch || !em || pw.length < 6) { o.innerHTML = '<span class="err">Məktəbin adını, girişi və ən azı 6 simvolluq parolu yazın.</span>'; return; }
+  $("acGo").disabled = true; o.textContent = "Yaradılır...";
+  const { error } = await sb.rpc("admin_create_school", { p_email: em, p_password: pw, p_school: sch });
+  $("acGo").disabled = false;
+  if (error) { o.innerHTML = '<span class="err">' + esc(acErr(error)) + '</span>'; return; }
+  acText = `${sch}\nGiriş: ${em.endsWith("@mekteb.az") ? em.replace("@mekteb.az", "") : em}\nParol: ${pw}\nSayt: ${location.origin}`;
+  o.innerHTML = `<b>Hesab yaradıldı ✔</b><br>Məktəb: ${esc(sch)}<br>Giriş: ${esc(em.replace("@mekteb.az", ""))}<br>Parol: <b>${esc(pw)}</b><button class="hbtn" id="acCopy" style="margin-left:8px">Kopyala</button>`;
+  $("acCopy").onclick = () => { navigator.clipboard.writeText(acText).then(() => toast("Kopyalandı ✔"), () => toast("Kopyalanmadı")); };
+  $("acSch").value = ""; $("acEm").value = ""; $("acPw").value = genPw(); toast("Hesab yaradıldı ✔"); loadAdmin();
+};
+$("acPwOnly").onclick = async () => {
+  const em = acEmail(), pw = $("acPw").value.trim(), o = $("acOut");
+  if (!em || pw.length < 6) { o.innerHTML = '<span class="err">Girişi və ən azı 6 simvolluq yeni parolu yazın.</span>'; return; }
+  if (!confirm(`${em} üçün parol dəyişdirilsin?`)) return;
+  const { error } = await sb.rpc("admin_set_password", { p_email: em, p_password: pw });
+  if (error) { o.innerHTML = '<span class="err">' + esc(acErr(error)) + '</span>'; return; }
+  o.innerHTML = `<b>Parol dəyişdi ✔</b><br>Giriş: ${esc(em.replace("@mekteb.az", ""))}<br>Yeni parol: <b>${esc(pw)}</b>`; $("acPw").value = genPw();
+};
 
 /* ---------- İDARƏ: köhnə saytdan köçürmə (davamiyyet.db) ---------- */
 let SQLP;
