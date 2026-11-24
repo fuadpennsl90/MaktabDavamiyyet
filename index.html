@@ -225,6 +225,21 @@
   #hist .hr .x{border:0;background:#ffe4ea;color:#be123c;border-radius:10px;padding:6px 10px;font-weight:800;font-size:12px}
   .jb{display:flex;gap:6px;flex-wrap:wrap}.jb button{border:1px solid var(--line);background:#fff;color:var(--mute);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:800}
   .jb button.on{color:#fff;border-color:transparent}.jb .g.on{background:var(--ok)}.jb .n0.on{background:var(--bad)}.jb .n1.on{background:var(--amber)}.jb .n2.on{background:var(--v)}
+    .ugrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ucard{border:2px solid var(--line);background:#faf9ff;border-radius:22px;padding:10px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .15s,background .15s,box-shadow .15s;color:var(--ink)}
+  .ucard b{font-size:14px;font-weight:800}
+  .ucard .ck{visibility:hidden;font-size:11px;font-weight:800;color:#fff;background:var(--ok);border-radius:10px;padding:2px 9px}
+  .ucard.on{border-color:var(--v);background:#f1ebff;box-shadow:0 10px 22px -12px rgba(124,58,237,.6)}
+  .ucard.on .ck{visibility:visible}
+  .scene{width:100%;height:124px;perspective:520px;display:grid;place-items:center}
+  .obj{position:relative;width:116px;height:124px;transform-style:preserve-3d;animation:spin 5s linear infinite;animation-play-state:paused}
+  .ucard:hover .obj,.ucard:focus-visible .obj{animation-play-state:running}
+  .fc{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .fc svg{width:100%;height:100%;display:block}
+  .fc.fr{transform:translateZ(5px)}.fc.bk{transform:rotateY(180deg) translateZ(5px)}
+  .fc.mid{backface-visibility:visible;-webkit-backface-visibility:visible;filter:brightness(.8)}
+  .fc.m1{transform:translateZ(2px)}.fc.m2{transform:translateZ(-2px)}
+  @keyframes spin{to{transform:rotateY(360deg)}}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -283,6 +298,7 @@
           <div class="seg" id="slotSeg"><button data-s="10:00">10:00</button><button data-s="13:00">13:00</button></div>
           <div class="prog"><div class="bar"><div class="tr"><i id="progBar"></i></div></div><small id="progTxt"></small></div>
         </div>
+        <div class="card"><h2>Forma dəsti</h2><p class="hint">Məktəbinizin dəstini seçin. Üzərinə gətirəndə fırlanır. Kamera yalnız seçilən dəstin rənglərinə görə tanıyır.</p><div class="ugrid" id="uGrid"></div></div>
         <div class="card">
           <h2>Sinfi seçin</h2><p class="hint">Yoxlamaq üçün sinfə toxunun</p>
           <div class="cgrid" id="cgrid"></div>
@@ -293,12 +309,8 @@
             <button class="btn" id="saveCls">Əlavə et</button>
           </div>
         </div>
-        <details class="card" id="setBox"><summary>⚙ Ayarlar</summary>
-          <div class="sub"><h2 style="margin-top:0">Məktəbli forması</h2>
-            <p class="hint">Məktəbinizin forma dəstini seçin (Nazirlər Kabinetinin 96 saylı qərarı). Köynək ağ, mavi və ya bej qəbul olunur; şalvar, ətək və jaket seçilən dəstə uyğun olmalıdır.</p>
-            <label for="uSet">Forma dəsti</label>
-            <select id="uSet"><option value="goy">Tünd-göy</option><option value="boz">Tünd-boz</option><option value="xaki">Qəhvəyi-yaşıl (xaki)</option><option value="qehve">Qəhvəyi</option></select>
-            <label for="tol">Uyğunluq həddi: <span id="tolVal">40</span>%</label><input id="tol" type="range" min="20" max="70" value="40">
+        <details class="card" id="setBox"><summary>⚙ Tənzimləmələr</summary>
+          <div class="sub"><label for="tol" style="margin-top:0">Uyğunluq həddi: <span id="tolVal">40</span>%</label><input id="tol" type="range" min="20" max="70" value="40">
             <p class="hint">Forması düzgün olan şagird qırmızı çıxırsa həddi azaldın, uyğun olmayan yaşıl çıxırsa artırın.</p></div>
           <div class="sub"><h2>Siniflərim</h2><p class="hint">Şagird sayını dəyişə və ya sinfi silə bilərsiniz</p><div id="setCls"></div></div>
         </details>
@@ -508,7 +520,7 @@ async function enter() {
     $("directorView").classList.remove("hidden"); $("dirNav").classList.remove("hidden");
     $("todayDate").textContent = new Date().toLocaleDateString("az", { weekday: "long", day: "numeric", month: "long" });
     cfg = { set: "goy", thr: 40, ...LS.get("cfg_" + session.user.id, {}) }; if (!SETS[cfg.set]) cfg.set = "goy"; cfg.thr = +cfg.thr || 40; classes = LS.get("cls_" + session.user.id, []);
-    $("uSet").value = cfg.set; $("tol").value = cfg.thr; $("tolVal").textContent = cfg.thr;
+    renderU(); $("tol").value = cfg.thr; $("tolVal").textContent = cfg.thr;
     const h = new Date().getHours() + new Date().getMinutes() / 60; slot = h < 11.5 ? "10:00" : "13:00";
     renderPick(); renderSet(); loadRecords();
     $("dFrom").value = today().slice(0, 8) + "01"; $("dTo").value = today(); $("jDate").value = today(); $("jDate").max = today();
@@ -605,36 +617,44 @@ $("file").onchange = e => {
   const img = new Image(); img.onload = () => analyze(img, img.naturalWidth, img.naturalHeight); img.src = URL.createObjectURL(f); e.target.value = "";
 };
 
-/* ---------- FORMA RƏNGLƏRİ (Nazirlər Kabinetinin 96 saylı qərarı) ---------- */
-const SHIRT = ["white", "lblue", "beige"];
+/* ---------- FORMA DƏSTLƏRİ (96 saylı qərarın əlavələrindəki rəsmlərdən) ---------- */
+const mk = (name, c, skirt) => ({ name, c, up: [c.shirt, c.trim, c.jack, c.jtrim], low: [c.low, ...(skirt ? [skirt] : [])] });
 const SETS = {
-  goy: { low: ["navy"], jack: ["navy", "blue"] },
-  boz: { low: ["dgray"], jack: ["gray", "dgray"] },
-  xaki: { low: ["khaki"], jack: ["khaki", "green"] },
-  qehve: { low: ["brown"], jack: ["brown", "khaki"] }
+  goy: mk("Tünd-göy", { shirt: "#ffffff", trim: "#3b82c4", jack: "#2d63b3", jtrim: "#c9d4e6", low: "#14305f" }),
+  boz: mk("Boz", { shirt: "#9fb0dc", trim: "#1e3a6e", jack: "#a6a7ab", jtrim: "#7a2b3a", low: "#6a6a72" }),
+  xaki: mk("Xaki (zeytun)", { shirt: "#d4cfc4", trim: "#c9c77a", jack: "#7b8570", jtrim: "#c9c77a", low: "#666a58" }),
+  qehve: mk("Qəhvəyi-yaşıl", { shirt: "#ffffff", trim: "#6f8f2f", jack: "#7aa83c", jtrim: "#a9753d", low: "#5a3419" }, "#c9a063")
 };
-function colorName(r, g, b) {
-  r /= 255; g /= 255; b /= 255;
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
-  const sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-  let hh = 0; if (d) { hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; hh = (hh * 60 + 360) % 360; }
-  if (l < 0.11) return "dark";
-  if (l >= 0.8 && sat < 0.4) return "white";
-  if (hh >= 180 && hh <= 260 && sat >= 0.1) return l < 0.3 ? "navy" : l < 0.55 ? "blue" : "lblue";
-  if (sat < 0.15) return l >= 0.6 ? "white" : l >= 0.3 ? "gray" : "dgray";
-  if (hh >= 20 && hh < 55 && l > 0.72 && sat < 0.55) return "beige";
-  if (hh >= 10 && hh < 40 && sat >= 0.28 && l >= 0.38 && l <= 0.78) return "skin";
-  if (hh < 50 && l < 0.38) return "brown";
-  if (hh >= 45 && hh < 100 && l < 0.55) return "khaki";
-  if (hh >= 100 && hh < 180 && l < 0.55) return "green";
-  return "other";
+function outfit(c) {
+  const sh = `<path d="M14 16L28 8Q35 14 42 8L56 16L66 36L56 42L52 34V70H18V34L14 42L4 36Z" fill="${c.shirt}" stroke="#0003" stroke-width="1"/><path d="M28 8Q35 14 42 8L40 14Q35 19 30 14Z" fill="${c.trim}"/><rect x="33" y="14" width="4" height="12" fill="${c.trim}"/><path d="M4 36L8 40L14 36L12 32Z M66 36L62 40L56 36L58 32Z" fill="${c.trim}"/>`;
+  const ja = `<g transform="translate(70 0)"><path d="M12 14L28 8Q35 12 42 8L58 14L66 62L56 64L52 30V70H18V30L14 64L4 62Z" fill="${c.jack}" stroke="#0003" stroke-width="1"/><path d="M28 8Q35 12 42 8L40 15Q35 18 30 15Z" fill="${c.jtrim}"/><rect x="18" y="64" width="34" height="6" fill="${c.jtrim}"/><rect x="4" y="60" width="10" height="4" fill="${c.jtrim}"/><rect x="56" y="60" width="10" height="4" fill="${c.jtrim}"/><path d="M35 14V70" stroke="#0004" stroke-width="1"/></g>`;
+  const pa = `<path d="M36 80H104L108 146H80L70 100L60 146H32Z" fill="${c.low}" stroke="#0003" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 140 150" xmlns="http://www.w3.org/2000/svg">${sh}${ja}${pa}</svg>`;
 }
+function renderU() {
+  $("uGrid").innerHTML = Object.entries(SETS).map(([k, s]) => { const o = outfit(s.c);
+    return `<button class="ucard ${k === cfg.set ? "on" : ""}" data-u="${k}" aria-label="${s.name}"><div class="scene"><div class="obj"><div class="fc mid m2">${o}</div><div class="fc mid m1">${o}</div><div class="fc fr">${o}</div><div class="fc bk">${o}</div></div></div><b>${s.name}</b><span class="ck">✓ Seçilib</span></button>`; }).join("");
+}
+function rgbLab(r, g, b) {
+  [r, g, b] = [r, g, b].map(v => { v /= 255; return v > .04045 ? Math.pow((v + .055) / 1.055, 2.4) : v / 12.92; });
+  const x = (r * .4124 + g * .3576 + b * .1805) / .95047, y = r * .2126 + g * .7152 + b * .0722, z = (r * .0193 + g * .1192 + b * .9505) / 1.08883;
+  const f = t => t > .008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+}
+const hexLab = h => { const n = parseInt(h.slice(1), 16); return rgbLab(n >> 16 & 255, n >> 8 & 255, n & 255); };
 function region(bx, x, y, bw, bh, fx0, fx1, fy0, fy1, w, h) {
   const sx = Math.max(0, Math.floor(x + bw * fx0)), sy = Math.max(0, Math.floor(y + bh * fy0));
   const sw = Math.max(1, Math.min(w - sx, Math.floor(bw * (fx1 - fx0)))), sh = Math.max(1, Math.min(h - sy, Math.floor(bh * (fy1 - fy0))));
   return bx.getImageData(sx, sy, sw, sh).data;
 }
-function share(d, ok) { let n = 0, m = 0; for (let i = 0; i < d.length; i += 8) { n++; if (ok.has(colorName(d[i], d[i + 1], d[i + 2]))) m++; } return n ? m / n : 0; }
+function share(d, pal) {
+  let n = 0, m = 0;
+  for (let i = 0; i < d.length; i += 8) {
+    n++; const l = rgbLab(d[i], d[i + 1], d[i + 2]);
+    for (const p of pal) { const dl = (l[0] - p[0]) * .5, da = l[1] - p[1], db = l[2] - p[2]; if (dl * dl + da * da + db * db <= 900) { m++; break; } }
+  }
+  return n ? m / n : 0;
+}
 
 /* ---------- ANALİZ ---------- */
 const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
@@ -645,11 +665,11 @@ async function analyze(src, w, h) {
   const bx = base.getContext("2d", { willReadFrequently: true }); bx.drawImage(src, 0, 0, w, h);
   stopCam(); $("video").classList.add("hidden");
   const preds = await model.detect(base, 100, 0.35);
-  const set = SETS[cfg.set] || SETS.goy, thr = (+cfg.thr || 40) / 100, upOk = new Set([...SHIRT, ...set.jack, "dark"]), loOk = new Set([...set.low, "dark"]);
+  const set = SETS[cfg.set] || SETS.goy, thr = (+cfg.thr || 40) / 100, upL = set.up.map(hexLab), loL = set.low.map(hexLab);
   const persons = preds.filter(p => p.class === "person" && p.score >= 0.35).map(p => {
     const [x, y, bw, bh] = p.bbox, standing = bh / bw > 2.0 && y + bh < h * 0.97;
-    const okUp = share(region(bx, x, y, bw, bh, 0.2, 0.8, standing ? 0.18 : 0.22, standing ? 0.5 : 0.62, w, h), upOk) >= thr;
-    const okLow = standing ? share(region(bx, x, y, bw, bh, 0.25, 0.75, 0.62, 0.92, w, h), loOk) >= thr : true;
+    const okUp = share(region(bx, x, y, bw, bh, 0.2, 0.8, standing ? 0.18 : 0.22, standing ? 0.5 : 0.62, w, h), upL) >= thr;
+    const okLow = standing ? share(region(bx, x, y, bw, bh, 0.25, 0.75, 0.62, 0.92, w, h), loL) >= thr : true;
     return { x, y, bw, bh, u: okUp && okLow };
   });
   shot = { base, persons, w, h };
@@ -704,7 +724,7 @@ async function loadRecords() {
 
 /* ---------- AYARLAR ---------- */
 const saveCfg = () => LS.set("cfg_" + session.user.id, cfg);
-$("uSet").onchange = () => { cfg.set = $("uSet").value; saveCfg(); toast("Forma dəsti yadda qaldı"); };
+$("uGrid").onclick = e => { const b = e.target.closest(".ucard"); if (!b) return; cfg.set = b.dataset.u; saveCfg(); buzz(); renderU(); toast("Forma dəsti: " + SETS[cfg.set].name); };
 $("tol").oninput = () => { $("tolVal").textContent = $("tol").value; cfg.thr = +$("tol").value; saveCfg(); };
 function renderSet() {
   $("setCls").innerHTML = classes.map(c => `<div class="rec"><div class="badge">${esc(c.n)}</div>
