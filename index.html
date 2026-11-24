@@ -373,10 +373,9 @@
     </section>
 
     <section class="tab hidden" data-tab="rep">
-      <div class="card"><h2>Hesabat</h2><p class="hint">Bütün məktəblər üzrə ətraflı Excel: xülasə, günlər, yoxlamalar, yayınmalar</p>
+      <div class="card"><h2>Hesabat</h2><p class="hint">Bütün məktəblər üzrə bir Excel: xülasə, günlər, yoxlamalar, yayınmalar, bərpalar</p>
         <div class="row"><div><label for="repFrom">Başlanğıc</label><input id="repFrom" type="date"></div><div><label for="repTo">Son</label><input id="repTo" type="date"></div></div>
         <button class="btn" id="csvBtn"><svg class="ic"><use href="#i-dl"/></svg>Hesabat (Excel)</button>
-        <button class="btn sec" id="copyBtn">Mətn hesabatı kopyala (WhatsApp)</button>
         <div id="repMsg" class="note"></div>
       </div>
       <div class="card"><h2>Köhnə saytdan köçürmə</h2><p class="hint">PythonAnywhere-dən endirdiyiniz davamiyyet.db faylını seçin. Şagirdlər və yayınmalar avtomatik köçürülür.</p>
@@ -718,10 +717,12 @@ async function dirReport() {
   const f = $("dFrom").value || today(), t = $("dTo").value || f, m = $("dMsg"), sch = profile.school_name;
   m.textContent = "Hazırlanır, bir az gözləyin...";
   if (!window.ExcelJS) { m.innerHTML = '<span class="err">Excel modulu yüklənmədi. İnterneti yoxlayıb səhifəni yeniləyin.</span>'; return; }
-  const [c, a] = await Promise.all([
+  const [c, a, r] = await Promise.all([
     pages(() => sb.from("checks").select("*").eq("school_name", sch).gte("check_date", f).lte("check_date", t).order("check_date").order("slot").order("class_name")),
-    pages(() => sb.from("absences").select("id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").eq("school_name", sch).gte("tarix", f).lte("tarix", t).order("tarix").order("id"))
+    pages(() => sb.from("absences").select("id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").eq("school_name", sch).gte("tarix", f).lte("tarix", t).order("tarix").order("id")),
+    pages(() => sb.from("restorations").select("id,tarix,students(soyad,ad,ata_adi,sinif,utis,fin)").eq("school_name", sch).gte("tarix", f).lte("tarix", t).order("tarix").order("id"))
   ]);
+  const rb = r.error ? [] : r.data;
   const er = c.error || a.error;
   if (er) { m.innerHTML = '<span class="err">' + esc(er.message) + '</span>'; return; }
   const sub = `${sch}   ·   Dövr: ${azd(f)} — ${azd(t)}   ·   Hazırlanma tarixi: ${azd(today())}`;
@@ -730,20 +731,13 @@ async function dirReport() {
     c.data.map(x => [azd(x.check_date), x.slot, x.class_name, x.roster, x.present, x.present_pct, x.uniform, x.uniform_pct]), [13, 9, 10, 12, 11, 14, 11, 11], [6, 8]);
   mkSheet(wb, "Yayınmalar", sub, ["Tarix", "Sinif", "Soyadı", "Adı", "Ata adı", "UTİS", "FİN", "Hadisə", "Görülən tədbir"],
     a.data.map(x => [azd(x.tarix), x.students?.sinif, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.students?.utis, x.students?.fin, x.nov, x.qeyd || ""]), [13, 9, 18, 16, 18, 14, 11, 20, 30]);
+  mkSheet(wb, "Bərpalar", sub, ["Tarix", "Sinif", "Soyadı", "Adı", "Ata adı", "UTİS", "FİN"],
+    rb.map(x => [azd(x.tarix), x.students?.sinif, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.students?.utis, x.students?.fin]), [13, 9, 18, 16, 18, 14, 11]);
   const buf = await wb.xlsx.writeBuffer(), el = document.createElement("a");
   el.href = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })); el.download = `Hesabat_${f}_${t}.xlsx`; el.click();
-  m.textContent = `Hazırdır: ${c.data.length} yoxlama, ${a.data.length} yayınma`; toast("Hesabat yükləndi ✔");
+  m.textContent = `Hazırdır: ${c.data.length} yoxlama, ${a.data.length} yayınma, ${rb.length} bərpa`; toast("Hesabat yükləndi ✔");
 }
 $("csvBtn").onclick = fullReport;
-$("copyBtn").onclick = async () => {
-  const r = await fetchRange(); if (!r) return;
-  const names = Array.from(new Set(r.data.map(x => x.school_name))).sort((a, b) => a.localeCompare(b, "az"));
-  let t = `📊 ${ORG}\nSinif yoxlaması: ${r.f === r.t ? r.f : r.f + " — " + r.t}\n\n`;
-  names.forEach(n => { const rows = r.data.filter(x => x.school_name === n);
-    t += `🏫 ${n}: davamiyyət ${fmt(pct(sum(rows, "present"), sum(rows, "roster")))}, forma ${fmt(pct(sum(rows, "uniform"), sum(rows, "present")))} (${rows.length} yoxlama)\n`; });
-  t += `\nÜmumi: davamiyyət ${fmt(pct(sum(r.data, "present"), sum(r.data, "roster")))}, forma ${fmt(pct(sum(r.data, "uniform"), sum(r.data, "present")))}`;
-  try { await navigator.clipboard.writeText(t); toast("Kopyalandı ✔"); } catch (_) { prompt("Mətni kopyalayın:", t); }
-};
 
 /* ---------- PORTAL (köhnə tahsilganja saytının direktor bölməsi) ---------- */
 const NOV = ["Üzrsüz", "Üzrlü (xəstəlik)", "Üzrlü (digər)"], NOVS = ["Üzrsüz", "Xəstəlik", "Üzrlü"];
@@ -885,12 +879,14 @@ function mkSheet(wb, name, sub, head, rows, widths, pc = [], total) {
 async function fullReport() {
   const f = $("repFrom").value || today(), t = $("repTo").value || f, m = $("repMsg"); m.textContent = "Hazırlanır, bir az gözləyin...";
   if (!window.ExcelJS) { m.innerHTML = '<span class="err">Excel modulu yüklənmədi. İnterneti yoxlayıb səhifəni yeniləyin.</span>'; return; }
-  const [c, a, s, p] = await Promise.all([
+  const [c, a, s, p, r] = await Promise.all([
     pages(() => sb.from("checks").select("*").gte("check_date", f).lte("check_date", t).order("check_date").order("school_name").order("slot").order("class_name")),
     pages(() => sb.from("absences").select("id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").gte("tarix", f).lte("tarix", t).order("tarix").order("id")),
     pages(() => sb.from("students").select("school_name").order("id")),
-    pages(() => sb.from("profiles").select("school_name").eq("role", "director").order("school_name"))
+    pages(() => sb.from("profiles").select("school_name").eq("role", "director").order("school_name")),
+    pages(() => sb.from("restorations").select("id,tarix,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)").gte("tarix", f).lte("tarix", t).order("tarix").order("id"))
   ]);
+  const rb = r.error ? [] : r.data;
   const er = c.error || a.error || s.error || p.error;
   if (er) { m.innerHTML = '<span class="err">' + esc(er.message) + '</span>'; return; }
   const stc = {}; s.data.forEach(x => stc[x.school_name] = (stc[x.school_name] || 0) + 1);
@@ -910,9 +906,11 @@ async function fullReport() {
     c.data.map(x => [azd(x.check_date), x.slot, x.school_name, x.class_name, x.roster, x.present, x.present_pct, x.uniform, x.uniform_pct]), [13, 9, 40, 10, 12, 11, 14, 11, 11], [7, 9]);
   mkSheet(wb, "Yayınmalar", sub, ["Tarix", "Məktəb", "Sinif", "Soyadı", "Adı", "Ata adı", "UTİS", "FİN", "Hadisə", "Görülən tədbir"],
     a.data.map(x => [azd(x.tarix), x.school_name, x.students?.sinif, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.students?.utis, x.students?.fin, x.nov, x.qeyd || ""]), [13, 38, 9, 18, 16, 18, 14, 11, 20, 30]);
+  mkSheet(wb, "Bərpalar", sub, ["Tarix", "Məktəb", "Sinif", "Soyadı", "Adı", "Ata adı", "UTİS", "FİN"],
+    rb.map(x => [azd(x.tarix), x.school_name, x.students?.sinif, x.students?.soyad, x.students?.ad, x.students?.ata_adi, x.students?.utis, x.students?.fin]), [13, 38, 9, 18, 16, 18, 14, 11]);
   const buf = await wb.xlsx.writeBuffer(), el = document.createElement("a");
   el.href = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })); el.download = `Hesabat_${f}_${t}.xlsx`; el.click();
-  m.textContent = `Hazırdır: ${names.length} məktəb, ${c.data.length} yoxlama, ${a.data.length} yayınma`; toast("Hesabat yükləndi ✔");
+  m.textContent = `Hazırdır: ${names.length} məktəb, ${c.data.length} yoxlama, ${a.data.length} yayınma, ${rb.length} bərpa`; toast("Hesabat yükləndi ✔");
 }
 
 /* ---------- İDARƏ: Portal (köhnə saytın admin bölməsi) ---------- */
