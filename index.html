@@ -365,8 +365,6 @@
           <div id="msg"></div>
           <div id="capBtns">
             <button class="btn" id="snap" disabled><svg class="ic"><use href="#i-cam"/></svg>Şəkil çək</button>
-            <button class="btn sec" id="fileBtn"><svg class="ic"><use href="#i-img"/></svg>Qalereyadan seç</button>
-            <input type="file" id="file" accept="image/*" class="hidden">
           </div>
         </div>
         <div class="card hidden" id="resBox">
@@ -661,7 +659,7 @@ async function ensureModel() {
 async function startCam() {
   const msg = $("msg"); msg.textContent = ""; $("snap").disabled = true; stopCam();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    msg.innerHTML = '<span class="err">Kamera bu brauzerdə işləmir və ya sayt https ilə açılmayıb. "Qalereyadan seç" düyməsindən istifadə edin.</span>';
+    msg.innerHTML = '<span class="err">Kamera bu brauzerdə işləmir və ya sayt https ilə açılmayıb.</span>';
   } else try {
     try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false }); }
     catch (e) { if (["NotAllowedError", "SecurityError", "NotFoundError"].includes(e.name)) throw e; stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
@@ -677,20 +675,14 @@ async function startCam() {
       : e.name === "NotFoundError" ? "Bu cihazda kamera tapılmadı."
       : e.name === "NotReadableError" ? "Kamera başqa tətbiqdə açıqdır. O tətbiqi bağlayın."
       : "Kamera açılmadı (" + (e.name || "xəta") + ").";
-    msg.innerHTML = `<span class="err">${t} Və ya "Qalereyadan seç" düyməsindən istifadə edin.</span> <button class="hbtn" id="camRetry">Yenidən cəhd</button>`;
+    msg.innerHTML = `<span class="err">${t} Və ya</span> <button class="hbtn" id="camRetry">Yenidən cəhd</button>`;
     $("camRetry").onclick = startCam;
   }
   ensureModel().catch(e => { if (!$("msg").querySelector(".err")) $("msg").innerHTML = '<span class="err">Model yüklənmədi, interneti yoxlayın (' + esc(e.message || "") + '). Kamera yenə də işləyir, düyməyə basanda yenidən cəhd olunacaq.</span>'; });
 }
 function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
 $("retake").onclick = () => { $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden"); $("stage").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("msg").textContent = ""; startCam(); };
-$("fileBtn").onclick = () => $("file").click();
-$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin və ya "Qalereyadan seç" düyməsini istifadə edin.</span>'; return; } analyze(v, v.videoWidth, v.videoHeight); };
-$("file").onchange = e => {
-  const f = e.target.files[0]; if (!f) return;
-  const img = new Image(); img.onload = () => analyze(img, img.naturalWidth, img.naturalHeight); img.src = URL.createObjectURL(f); e.target.value = "";
-};
-
+$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin.</span>'; return; } analyze(v, v.videoWidth, v.videoHeight); };
 /* ---------- FORMA DƏSTLƏRİ (96 saylı qərarın əlavələrindəki rəsmlərdən) ---------- */
 const mk = (name, c, skirt) => ({ name, c, up: [c.shirt, c.trim, c.jack, c.jtrim], low: [c.low, ...(skirt ? [skirt] : [])] });
 const SETS = {
@@ -1374,8 +1366,8 @@ const l=document.createElement("link");l.rel="manifest";l.href=URL.createObjectU
   const D=(t,b,o)=>`<details${o?" open":""}><summary>${t}</summary>${b}</details>`;
   const dir=[
    D("1. Sistemə giriş",`<ol><li>Saytı açın.</li><li>Məktəbinizə verilən <b>girişi</b> və <b>parolu</b> yazın.</li><li><b>Daxil ol</b> düyməsinə basın.</li></ol><div class="tip">Giriş və parolu bilmirsinizsə, regional təhsil idarəsinə müraciət edin.</div>`,1),
-   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın. Və ya <b>Qalereyadan seç</b> edin.</li><li>Forma səhv tanınırsa: düzgün formalı şagirdləri yaşıl, qalanlarını qırmızı edin və <b>🎯 Yaşıl olanları forma nümunəsi et</b> düyməsinə basın. Sistem məktəbinizin formasını öyrənir.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
-   D("3. Kamera işləmirsə",`<ul><li>Brauzer kameraya icazə istəyəndə <b>İcazə ver</b> seçin.</li><li>Kamera başqa tətbiqdə açıqdırsa, onu bağlayın.</li><li>Alternativ olaraq <b>Qalereyadan seç</b> düyməsindən istifadə edin.</li><li>Forma düzgün olan şagird qırmızı çıxırsa, <b>Tənzimləmələr</b>-də uyğunluq həddini azaldın.</li></ul>`),
+   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: düzgün formalı şagirdləri yaşıl, qalanlarını qırmızı edin və <b>🎯 Yaşıl olanları forma nümunəsi et</b> düyməsinə basın. Sistem məktəbinizin formasını öyrənir.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
+   D("3. Kamera işləmirsə",`<ul><li>Brauzer kameraya icazə istəyəndə <b>İcazə ver</b> seçin.</li><li>Kamera başqa tətbiqdə açıqdırsa, onu bağlayın.</li><li>Forma düzgün olan şagird qırmızı çıxırsa, <b>Tənzimləmələr</b>-də uyğunluq həddini azaldın.</li></ul>`),
    D("4. Təhsildən yayınanlar",`<ol><li>Alt menyuda <b>Təhsildən Yayınanlar</b> bölməsini açın.</li><li>Sinfi və tarixi seçin.</li><li>Dərsə gəlməyən şagirdin yanında <b>Üzrsüz</b>, <b>Xəstəlik</b> və ya <b>Üzrlü</b> düyməsinə basın. Avtomatik saxlanır. Düzəliş üçün <b>Gəlib</b> düyməsinə basın.</li><li>İstəsəniz görülən tədbiri yazın (məs. valideynlə danışıldı).</li><li>Aşağıdakı <b>Yayınanlar cədvəli</b>-ndə həmin gün yayınan bütün şagirdlər görünür. Sətrə toxunsanız şagirdin bütün tarixçəsi açılır.</li></ol>`),
    D("5. Şagird əlavə etmək və tarixçə",`<ul><li><b>Yeni şagird:</b> <b>+ Yeni şagird əlavə et</b> düyməsinə basın. Soyad, ad, ata adı, sinif, UTİS (rəqəm) və FİN (7 simvol) yazıb saxlayın.</li><li><b>Düzəliş və ya silmə:</b> şagird məlumatını yalnız idarə (administrator) dəyişə və ya silə bilər. Səhv olsa idarəyə müraciət edin.</li><li><b>Bərpa:</b> şagird dərsə qayıdıbsa, tarixçədə tarixi seçib <b>Bərpa olundu</b> düyməsinə basın.</li></ul>`),
    D("6. Hesabat",`<ol><li>Alt menyuda <b>Hesabat</b> bölməsini açın.</li><li>Başlanğıc və son tarixi seçin.</li><li>Ekranda yoxlamalar və yayınanlar görünür. Şagirdə toxunsanız tarixçəsi açılır.</li><li><b>Excel</b> düyməsi ilə hesabatı telefona endirin.</li></ol>`),
