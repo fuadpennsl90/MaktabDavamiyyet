@@ -253,6 +253,11 @@
   .hbox input,.hbox select{background:#fff}.hbox .dtv{background:#fff}
   .hh{font-size:14px;font-weight:800;margin:20px 0 6px}
   #hist .tiles{margin-top:14px}
+    .c2{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:10px;margin-left:4px;white-space:nowrap}.c2.y{background:#d9fbec;color:#047857}.c2.n{background:#ffe4ea;color:#be123c}
+  .school.compact{padding:12px 0}.school.compact h3{font-size:15px;margin:0}.mini{font-size:12px;font-weight:600;color:var(--mute);margin-top:5px}.mini b{color:var(--ink)}
+  .school.compact[open]>summary{margin-bottom:12px}
+  .fchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.fchips button{border:1px solid var(--line);background:#fff;color:var(--mute);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:800}.fchips button.on{background:var(--grad);color:#fff;border-color:transparent}
+  .more{margin-top:12px}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -397,7 +402,7 @@
           <div class="tile"><b id="sUni">—</b><span>Orta forma</span></div>
         </div>
       </div>
-      <div class="card hidden" id="missCard"><h2>Yoxlama olmayanlar</h2><p class="hint">Bu tarixdə qeyd göndərməyən məktəblər</p><div id="missList"></div></div>
+      <div class="card hidden" id="missCard"><h2>Yoxlama olmayanlar</h2><p class="hint" id="missCnt">Bu tarixdə qeyd göndərməyən məktəblər</p><div id="missList"></div></div>
       <details class="card" id="acBox"><summary>+ Məktəb üçün giriş yarat</summary>
         <div class="sub"><label for="acSch" style="margin-top:0">Məktəbin adı</label><input id="acSch" placeholder="məs. 5 nömrəli tam orta məktəb">
           <label for="acEm">Giriş (e-poçt)</label><input id="acEm" autocapitalize="none" autocomplete="off" placeholder="mekteb5 və ya mekteb5@mail.az">
@@ -406,13 +411,13 @@
           <button class="btn sec" id="acPwOnly">Mövcud hesabın parolunu dəyiş</button>
           <div id="acOut" class="note"></div></div></details>
       <div class="card"><h2>Bütün məktəblər</h2><p class="hint">Məktəbə toxunun, siniflər açılsın</p>
-        <input id="q" placeholder="Məktəb axtar..."><div id="adminRows" style="margin-top:14px"></div></div>
+        <div class="fchips" id="admF"><button data-f="all" class="on">Hamısı</button><button data-f="chk">Yoxlayan</button><button data-f="mis">Yoxlamayan</button></div><input id="q" placeholder="Məktəb axtar..."><div id="adminRows" style="margin-top:14px"></div></div>
     </section>
     <section class="tab hidden" data-tab="portal">
       <div class="card"><div class="tiles" style="grid-template-columns:1fr 1fr">
         <div class="tile"><b id="pSch">0</b><span>Məktəb</span></div><div class="tile"><b id="pStu">0</b><span>Şagird</span></div>
         <div class="tile"><b id="pToday">0</b><span>Bu gün yayınan</span></div><div class="tile"><b id="pMonth">0</b><span>Bu ay yayınan</span></div></div></div>
-      <div id="pMain"><div class="card"><h2>Məktəblər</h2><p class="hint">Məktəbə toxunun, şagirdləri açılsın</p><div id="pRows"></div></div></div>
+      <div id="pMain"><div class="card"><h2>Məktəblər</h2><p class="hint" id="pCnt">Məktəbə toxunun, şagirdləri açılsın</p><input id="pSq" placeholder="Məktəb axtar..." style="margin-bottom:10px"><div id="pRows"></div></div></div>
       <div id="pSchool" class="hidden"><div class="card"><div class="top"><button class="back" id="pBack">‹ Məktəblər</button><b id="pName" style="font-size:17px"></b></div>
         <input id="pq" placeholder="Şagird axtar..." style="margin-top:12px"><div id="pStud" style="margin-top:8px"></div></div></div>
       <div class="card"><h2>Yayınanlar cədvəli</h2><label for="pDate">Tarix</label><input id="pDate" type="date"><p class="hint" id="pAbsCnt"></p><div id="pTbl"></div></div>
@@ -782,7 +787,12 @@ $("setCls").onclick = e => { const b = e.target.closest("[data-del]"); if (!b) r
 
 /* ---------- İDARƏ PANELİ ---------- */
 $("adminRefresh").onclick = () => { buzz(); loadAdmin(); if (!document.querySelector("#adminView [data-tab=portal]").classList.contains("hidden")) loadAdminPortal(); toast("Yeniləndi"); };
-$("adminDate").onchange = loadAdmin; $("q").oninput = renderAdmin;
+let admLim = 15, admF = "all";
+const setF = f => { admF = f; admLim = 15; document.querySelectorAll("#admF button").forEach(b => b.classList.toggle("on", b.dataset.f === f)); renderAdmin(); };
+$("admF").onclick = e => { const b = e.target.closest("button"); if (b) setF(b.dataset.f); };
+$("adminDate").onchange = () => { admLim = 15; loadAdmin(); }; $("q").oninput = () => { admLim = 15; renderAdmin(); };
+$("adminRows").onclick = e => { if (e.target.closest("#admMore")) { admLim += 15; renderAdmin(); } };
+$("missList").onclick = e => { if (e.target.closest("#missAll")) { setF("mis"); $("q").scrollIntoView({ behavior: "smooth", block: "center" }); } };
 const shiftDay = n => { const d = new Date(($("adminDate").value || today()) + "T12:00:00"); d.setDate(d.getDate() + n); $("adminDate").value = d.toLocaleDateString("sv-SE"); loadAdmin(); };
 $("dPrev").onclick = () => shiftDay(-1); $("dNext").onclick = () => shiftDay(1);
 
@@ -808,19 +818,28 @@ function renderAdmin() {
   $("sAtt").textContent = fmt(pct(sum(adminData, "present"), sum(adminData, "roster"))); $("sUni").textContent = fmt(pct(sum(adminData, "uniform"), sum(adminData, "present")));
   const miss = all.map(s => ({ n: s.n, m: ["10:00", "13:00"].filter(t => !s.rows.some(r => r.slot === t)) })).filter(x => x.m.length);
   $("missCard").classList.toggle("hidden", !miss.length);
-  $("missList").innerHTML = miss.map(x => `<div class="rec"><div class="info"><b>${esc(x.n)}</b></div><span class="pill r">${x.m.length === 2 ? "heç yoxlama yoxdur" : x.m[0] + " yoxdur"}</span></div>`).join("");
+  const mrow = x => `<div class="rec"><div class="info"><b>${esc(x.n)}</b></div><span class="pill r">${x.m.length === 2 ? "heç yoxlama yoxdur" : x.m[0] + " yoxdur"}</span></div>`;
+  $("missCnt").textContent = `Bu tarixdə qeyd göndərməyən ${miss.length} məktəb`;
+  $("missList").innerHTML = miss.slice(0, 5).map(mrow).join("") + (miss.length > 5 ? `<button class="btn sec more" id="missAll">Hamısına bax (${miss.length})</button>` : "");
+  const fb = document.querySelectorAll("#admF button"); fb[0].textContent = `Hamısı (${all.length})`; fb[1].textContent = `Yoxlayan (${checked.length})`; fb[2].textContent = `Yoxlamayan (${all.length - checked.length})`;
   const q = $("q").value.trim().toLowerCase();
-  const list = all.filter(s => s.n.toLowerCase().includes(q)).sort((a, b) => (a.rows.length ? 1 : 0) - (b.rows.length ? 1 : 0) || (a.ap ?? 0) - (b.ap ?? 0));
+  const list = all.filter(s => s.n.toLowerCase().includes(q) && (admF === "all" || (admF === "chk" ? s.rows.length : !s.rows.length)))
+    .sort((a, b) => (a.rows.length ? 1 : 0) - (b.rows.length ? 1 : 0) || (a.ap ?? 0) - (b.ap ?? 0));
+  const shown = list.slice(0, admLim);
   const box = (t, rows) => rows.length
     ? `<div class="slot-box"><b>${t}</b>${rows.length} sinif · ${fmt(pct(sum(rows, "present"), sum(rows, "roster")))}</div>` : `<div class="slot-box miss"><b>${t}</b>Yoxdur</div>`;
-  $("adminRows").innerHTML = list.map(s => `<details class="school"><summary>
-      <div class="sh"><h3>${esc(s.n)}</h3><span class="pill">${s.rows.length} qeyd</span></div>
-      <div class="sl">${box("10:00", s.rows.filter(r => r.slot === "10:00"))}${box("13:00", s.rows.filter(r => r.slot === "13:00"))}</div>
+  const dot = (t, rows) => `<span class="c2 ${rows.length ? "y" : "n"}">${t} ${rows.length ? "✓" : "✗"}</span>`;
+  $("adminRows").innerHTML = list.length ? `<div class="hint" style="margin:0 0 4px">${list.length} məktəb</div>` + shown.map(s => { const r1 = s.rows.filter(r => r.slot === "10:00"), r2 = s.rows.filter(r => r.slot === "13:00");
+    return `<details class="school compact"><summary>
+      <div class="sh"><h3>${esc(s.n)}</h3><span style="white-space:nowrap">${dot("10:00", r1)}${dot("13:00", r2)}</span></div>
+      <div class="mini">Davamiyyət <b>${fmt(s.ap)}</b> · Forma <b>${fmt(s.up)}</b></div></summary>
+      <div class="sl">${box("10:00", r1)}${box("13:00", r2)}</div>
       <div class="bar"><div class="lbl"><span>Davamiyyət</span><span>${fmt(s.ap)}</span></div><div class="tr"><i style="width:${s.ap || 0}%"></i></div></div>
-      <div class="bar u"><div class="lbl"><span>Forma</span><span>${fmt(s.up)}</span></div><div class="tr"><i style="width:${s.up || 0}%"></i></div></div></summary>
+      <div class="bar u"><div class="lbl"><span>Forma</span><span>${fmt(s.up)}</span></div><div class="tr"><i style="width:${s.up || 0}%"></i></div></div>
       <div class="cl">${s.rows.slice().sort((a, b) => a.slot.localeCompare(b.slot) || a.class_name.localeCompare(b.class_name, "az", { numeric: true })).map(r =>
-        `<div><span>${esc(r.slot)} · ${esc(r.class_name)}</span><span>${esc(r.present)}/${esc(r.roster)} (${esc(r.present_pct)}%) · forma ${esc(r.uniform_pct)}%</span></div>`).join("") || '<div><span>Qeyd yoxdur</span></div>'}</div></details>`
-  ).join("") || '<div class="empty">Məktəb tapılmadı</div>';
+        `<div><span>${esc(r.slot)} · ${esc(r.class_name)}</span><span>${esc(r.present)}/${esc(r.roster)} (${esc(r.present_pct)}%) · forma ${esc(r.uniform_pct)}%</span></div>`).join("") || '<div><span>Qeyd yoxdur</span></div>'}</div></details>`; }).join("")
+    + (list.length > shown.length ? `<button class="btn sec more" id="admMore">Daha çox göstər (${list.length - shown.length})</button>` : "")
+    : '<div class="empty">Məktəb tapılmadı</div>';
 }
 
 async function fetchRange(p = "rep") {
@@ -916,11 +935,13 @@ $("jList").onchange = async e => {
 };
 /* ---------- YAYINANLAR CƏDVƏLİ ---------- */
 function absTable(el, rows) {
+  el._rows = rows; const lim = el._lim || 25;
   if (!rows.length) { el.innerHTML = '<div class="empty">Bu tarixdə yayınan şagird yoxdur</div>'; return; }
   const r = rows.slice().sort((a, b) => a.school_name.localeCompare(b.school_name, "az") || (a.students?.sinif || "").localeCompare(b.students?.sinif || "", "az", { numeric: true }) || (a.students?.soyad || "").localeCompare(b.students?.soyad || "", "az"));
   el.innerHTML = `<div class="tw"><table><thead><tr><th>№</th><th>Təhsil müəssisəsi</th><th>Soyadı Adı Ata adı</th><th>Sinif</th><th>UTİS</th><th>FİN</th><th>Hadisə</th><th>Görülən tədbir</th><th></th></tr></thead><tbody>`
-    + r.map((x, i) => { const t = x.students || {}; return `<tr><td>${i + 1}</td><td>${esc(x.school_name)}</td><td><b>${esc(t.soyad)} ${esc(t.ad)} ${esc(t.ata_adi)}</b></td><td>${esc(t.sinif)}</td><td>${esc(t.utis)}</td><td>${esc(t.fin)}</td>
-      <td><span class="pill ${x.nov === "Üzrsüz" ? "r" : "u"}">${esc(x.nov)}</span></td><td>${esc(x.qeyd || "")}</td><td><button class="hbtn" data-h="${x.student_id}">Tarixçə</button></td></tr>`; }).join("") + "</tbody></table></div>";
+    + r.slice(0, lim).map((x, i) => { const t = x.students || {}; return `<tr><td>${i + 1}</td><td>${esc(x.school_name)}</td><td><b>${esc(t.soyad)} ${esc(t.ad)} ${esc(t.ata_adi)}</b></td><td>${esc(t.sinif)}</td><td>${esc(t.utis)}</td><td>${esc(t.fin)}</td>
+      <td><span class="pill ${x.nov === "Üzrsüz" ? "r" : "u"}">${esc(x.nov)}</span></td><td>${esc(x.qeyd || "")}</td><td><button class="hbtn" data-h="${x.student_id}">Tarixçə</button></td></tr>`; }).join("") + "</tbody></table></div>"
+    + (r.length > lim ? `<button class="btn sec more" data-more="1">Daha çox göstər (${r.length - lim})</button>` : "");
 }
 const ABS_SEL = "id,student_id,tarix,nov,qeyd,school_name,students(soyad,ad,ata_adi,sinif,utis,fin)";
 async function loadAbsTable() {
@@ -928,6 +949,7 @@ async function loadAbsTable() {
   const d = $("jDate").value || today();
   const { data, error } = await pages(() => sb.from("absences").select(ABS_SEL).eq("school_name", profile.school_name).eq("tarix", d).order("id"));
   if (error) { $("dAbsTbl").innerHTML = `<div class="empty err">${esc(error.message)}</div>`; return; }
+  if ($("dAbsTbl")._d !== d) { $("dAbsTbl")._d = d; $("dAbsTbl")._lim = 25; }
   $("dAbsCnt").textContent = `${azd(d)} · cəmi ${data.length} yayınan`; absTable($("dAbsTbl"), data);
 }
 async function loadAdminAbsTable() {
@@ -935,10 +957,11 @@ async function loadAdminAbsTable() {
   const d = $("pDate").value;
   const { data, error } = await pages(() => sb.from("absences").select(ABS_SEL).eq("tarix", d).order("id"));
   if (error) { $("pTbl").innerHTML = `<div class="empty err">${esc(error.message)}</div>`; return; }
+  if ($("pTbl")._d !== d) { $("pTbl")._d = d; $("pTbl")._lim = 25; }
   $("pAbsCnt").textContent = `${azd(d)} · bütün məktəblər üzrə cəmi ${data.length} yayınan`; absTable($("pTbl"), data);
 }
 $("pDate").onchange = loadAdminAbsTable;
-$("dAbsTbl").onclick = $("pTbl").onclick = e => { const b = e.target.closest("[data-h]"); if (b) openHist(+b.dataset.h); };
+$("dAbsTbl").onclick = $("pTbl").onclick = e => { const el = e.currentTarget; if (e.target.closest("[data-more]")) { el._lim = (el._lim || 25) + 25; absTable(el, el._rows); return; } const b = e.target.closest("[data-h]"); if (b) openHist(+b.dataset.h); };
 
 let hSid = 0;
 const hStu = () => stu.find(x => x.id === hSid) || pS.find(x => x.id === hSid);
@@ -1070,7 +1093,19 @@ async function fullReport() {
 }
 
 /* ---------- İDARƏ: Portal (köhnə saytın admin bölməsi) ---------- */
-let pS = [], pA = [], pCur = "";
+let pS = [], pA = [], pCur = "", pNames = [], pLim = 15, sLim = 30;
+function renderPRows() {
+  const td = today(), q = ($("pSq").value || "").trim().toLowerCase();
+  const rows = pNames.filter(n => n.toLowerCase().includes(q)).map(n => ({ n, st: pS.filter(x => x.school_name === n), ab: pA.filter(x => x.school_name === n) }))
+    .sort((a, b) => b.ab.filter(x => x.tarix === td).length - a.ab.filter(x => x.tarix === td).length || a.n.localeCompare(b.n, "az"));
+  $("pCnt").textContent = `${rows.length} məktəb · bu gün yayınanı olanlar yuxarıdadır`;
+  const sh = rows.slice(0, pLim);
+  $("pRows").innerHTML = sh.map(({ n, st, ab }) => `<div class="rec" data-m="${esc(n)}" style="cursor:pointer"><div class="info"><b>${esc(n)}</b><small>${st.length} şagird · ${new Set(st.map(x => x.sinif)).size} sinif</small></div>
+      <div class="nums"><span class="pill ${ab.some(x => x.tarix === td) ? "r" : ""}">Bu gün ${ab.filter(x => x.tarix === td).length}</span><span class="pill u">Bu ay ${ab.length}</span></div></div>`).join("")
+    + (rows.length > sh.length ? `<button class="btn sec more" id="pMore">Daha çox göstər (${rows.length - sh.length})</button>` : "") || '<div class="empty">Məktəb tapılmadı</div>';
+}
+$("pSq").oninput = () => { pLim = 15; renderPRows(); };
+$("pRows").addEventListener("click", e => { if (e.target.closest("#pMore")) { pLim += 15; renderPRows(); } });
 async function loadAdminPortal() {
   $("pRows").innerHTML = '<div class="empty">Yüklənir...</div>';
   const ms = today().slice(0, 8) + "01";
@@ -1085,24 +1120,23 @@ async function loadAdminPortal() {
   const names = [...new Set([...p.data, ...pS, ...pA].map(x => x.school_name))].sort((x, y) => x.localeCompare(y, "az")), td = today();
   $("pSch").textContent = names.length; $("pStu").textContent = pS.length;
   $("pToday").textContent = pA.filter(x => x.tarix === td).length; $("pMonth").textContent = pA.length;
-  $("pRows").innerHTML = names.map(n => { const st = pS.filter(x => x.school_name === n), ab = pA.filter(x => x.school_name === n);
-    return `<div class="rec" data-m="${esc(n)}" style="cursor:pointer"><div class="info"><b>${esc(n)}</b><small>${st.length} şagird · ${new Set(st.map(x => x.sinif)).size} sinif</small></div>
-      <div class="nums"><span class="pill">Bu gün ${ab.filter(x => x.tarix === td).length}</span><span class="pill u">Bu ay ${ab.length}</span></div></div>`; }).join("") || '<div class="empty">Məlumat yoxdur</div>';
+  pNames = names; pLim = 15; renderPRows();
   if (pCur) renderPS();
   loadAdminAbsTable();
 }
-$("pRows").onclick = e => { const r = e.target.closest("[data-m]"); if (!r) return; pCur = r.dataset.m; $("pq").value = ""; $("pMain").classList.add("hidden"); $("pSchool").classList.remove("hidden"); window.scrollTo({ top: 0 }); renderPS(); };
+$("pRows").onclick = e => { const r = e.target.closest("[data-m]"); if (!r) return; pCur = r.dataset.m; sLim = 30; $("pq").value = ""; $("pMain").classList.add("hidden"); $("pSchool").classList.remove("hidden"); window.scrollTo({ top: 0 }); renderPS(); };
 $("pBack").onclick = () => { pCur = ""; $("pSchool").classList.add("hidden"); $("pMain").classList.remove("hidden"); };
-$("pq").oninput = renderPS;
-$("pStud").onclick = e => { const b = e.target.closest("[data-h]"); if (b) openHist(+b.dataset.h); };
+$("pq").oninput = () => { sLim = 30; renderPS(); };
+$("pStud").onclick = e => { if (e.target.closest("#sMore")) { sLim += 30; renderPS(); return; } const b = e.target.closest("[data-h]"); if (b) openHist(+b.dataset.h); };
 function renderPS() {
   $("pName").textContent = pCur;
   const cnt = {}; pA.filter(x => x.school_name === pCur).forEach(x => cnt[x.student_id] = (cnt[x.student_id] || 0) + 1);
   const q = $("pq").value.trim().toLowerCase();
   const l = pS.filter(x => x.school_name === pCur && `${x.soyad} ${x.ad} ${x.ata_adi} ${x.sinif}`.toLowerCase().includes(q))
     .sort((x, y) => x.sinif.localeCompare(y.sinif, "az", { numeric: true }) || x.soyad.localeCompare(y.soyad, "az"));
-  $("pStud").innerHTML = l.slice(0, 300).map(x => `<div class="rec"><div class="badge">${esc(x.sinif)}</div><div class="info"><b>${esc(x.soyad)} ${esc(x.ad)}</b><small>${esc(x.ata_adi)}</small></div>
+  $("pStud").innerHTML = l.slice(0, sLim).map(x => `<div class="rec"><div class="badge">${esc(x.sinif)}</div><div class="info"><b>${esc(x.soyad)} ${esc(x.ad)}</b><small>${esc(x.ata_adi)}</small></div>
     <div class="nums"><span class="pill ${cnt[x.id] ? "r" : ""}">Bu ay ${cnt[x.id] || 0}</span><button class="hbtn" data-h="${x.id}">Tarixçə</button></div></div>`).join("") || '<div class="empty">Şagird tapılmadı</div>';
+  if (l.length > sLim) $("pStud").insertAdjacentHTML("beforeend", `<button class="btn sec more" id="sMore">Daha çox göstər (${l.length - sLim})</button>`);
 }
 
 /* ---------- İDARƏ: məktəb üçün giriş yaratmaq ---------- */
