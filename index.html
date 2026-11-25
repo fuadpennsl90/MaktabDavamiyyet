@@ -381,9 +381,9 @@
               <div class="sbox"><b id="vUni">0</b></div></div>
           </div>
           <button class="btn ok" id="save"><svg class="ic"><use href="#i-save"/></svg>Qeyd et</button>
-          <button class="btn sec" id="calBtn">🎯 Seçimi öyrət (yaşıl = forma, qırmızı = forma deyil)</button>
+          <button class="btn sec" id="calBtn">🎯 Formanı öyrət</button>
           <button class="btn sec" id="retake"><svg class="ic"><use href="#i-refresh"/></svg>Yenidən çək</button>
-          <p class="note">Forma səhv tanınırsa: düzgün formalı şagirdləri yaşıl, qalanlarını qırmızı edin (qutuya toxunun) və 🎯 düyməsinə basın, sistem öyrənir. Artıq və ya səhv qutunu silmək üçün ona uzun basın. Yaşıl ✓ formada, qırmızı ✗ formada deyil. Səhv göstərilibsə, şəkildəki qutuya toxunaraq düzəldin. Şəkil heç bir yerə göndərilmir, yalnız rəqəmlər qeyd olunur.</p>
+          <p class="note"><b>Forma səhv tanınırsa:</b><br>1. Şəkildəki qutulara toxunun: formalı şagird yaşıl ✓, formasız şagird qırmızı ✗ olsun.<br>2. <b>🎯 Formanı öyrət</b> düyməsinə basın.<br>Bundan sonra sistem sizin məktəbin formasını tanıyacaq. Artıq qutunu silmək üçün ona uzun basın. Yaşıl ✓ formada, qırmızı ✗ formada deyil. Səhv göstərilibsə, şəkildəki qutuya toxunaraq düzəldin. Şəkil heç bir yerə göndərilmir, yalnız rəqəmlər qeyd olunur.</p>
         </div>
       </div>
     </section>
@@ -641,12 +641,12 @@ $("cgrid").onclick = e => {
 function startClass(c) {
   cur = c; shot = null; acc = []; ex = { u: 0, n: 0 }; st = { present: 0, uni: 0 };
   $("curCls").textContent = c.n; $("curSlot").textContent = slot;
-  $("pick").classList.add("hidden"); $("work").classList.remove("hidden");
+  $("pick").classList.add("hidden"); $("work").classList.remove("hidden"); $("dirNav").classList.add("hidden");
   $("stage").classList.remove("hidden"); $("capBtns").classList.remove("hidden"); $("resBox").classList.add("hidden");
   $("canvas").classList.add("hidden"); $("msg").textContent = "";
   window.scrollTo({ top: 0, behavior: "smooth" }); startCam();
 }
-function leaveWork() { stopCam(); $("video").classList.add("hidden"); $("work").classList.add("hidden"); $("pick").classList.remove("hidden"); }
+function leaveWork() { $("dirNav").classList.remove("hidden"); stopCam(); $("video").classList.add("hidden"); $("work").classList.add("hidden"); $("pick").classList.remove("hidden"); }
 $("backBtn").onclick = () => { leaveWork(); renderPick(); };
 
 /* ---------- MODEL və KAMERA ---------- */
@@ -832,6 +832,7 @@ $("canvas").onpointerup = () => { if (!lp) return; clearTimeout(lp.t); if (!lp.d
 $("canvas").onpointercancel = $("canvas").onpointerleave = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
 function showResult() { $("capBtns").classList.add("hidden"); $("resBox").classList.remove("hidden"); updateUI(); setTimeout(() => $("resBox").scrollIntoView({ behavior: "smooth", block: "start" }), 120); }
 function updateUI() {
+  $("calBtn").classList.toggle("hidden", !(shot && shot.persons.length));
   const ap = pct(st.present, cur.r), up = pct(st.uni, st.present);
   $("vPresent").textContent = st.present; $("vUni").textContent = st.uni;
   $("rPct").textContent = fmt(ap); $("rUPct").textContent = fmt(up);
@@ -1405,7 +1406,7 @@ const l=document.createElement("link");l.rel="manifest";l.href=URL.createObjectU
   const D=(t,b,o)=>`<details${o?" open":""}><summary>${t}</summary>${b}</details>`;
   const dir=[
    D("1. Sistemə giriş",`<ol><li>Saytı açın.</li><li>Məktəbinizə verilən <b>girişi</b> və <b>parolu</b> yazın.</li><li><b>Daxil ol</b> düyməsinə basın.</li></ol><div class="tip">Giriş və parolu bilmirsinizsə, regional təhsil idarəsinə müraciət edin.</div>`,1),
-   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: düzgün formalı şagirdləri yaşıl, qalanlarını qırmızı edin və <b>🎯 Seçimi öyrət</b> düyməsinə basın. Yaşıl = forma, qırmızı = forma deyil. Sistem məktəbinizin formasını öyrənir.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li>Kamerada <b>+ / −</b> düymələri və ya slayder ilə yaxınlaşıb uzaqlaşa bilərsiniz (iki barmaqla da olur).</li><li>Hamı kameraya sığsın deyə telefonu <b>üfüqi (yan)</b> tutun və sinfi arxa küncdən çəkin. Artıq və ya səhv qutunu silmək üçün ona uzun basın.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
+   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: şəkildəki qutulara toxunub formalı şagirdi yaşıl ✓, formasızı qırmızı ✗ edin, sonra <b>🎯 Formanı öyrət</b> düyməsinə basın.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li>Kamerada <b>+ / −</b> düymələri və ya slayder ilə yaxınlaşıb uzaqlaşa bilərsiniz (iki barmaqla da olur).</li><li>Hamı kameraya sığsın deyə telefonu <b>üfüqi (yan)</b> tutun və sinfi arxa küncdən çəkin. Artıq və ya səhv qutunu silmək üçün ona uzun basın.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
    D("3. Kamera işləmirsə",`<ul><li>Brauzer kameraya icazə istəyəndə <b>İcazə ver</b> seçin.</li><li>Kamera başqa tətbiqdə açıqdırsa, onu bağlayın.</li><li>Forma düzgün olan şagird qırmızı çıxırsa, <b>Tənzimləmələr</b>-də uyğunluq həddini azaldın.</li></ul>`),
    D("4. Təhsildən yayınanlar",`<ol><li>Alt menyuda <b>Təhsildən Yayınanlar</b> bölməsini açın.</li><li>Sinfi və tarixi seçin.</li><li>Dərsə gəlməyən şagirdin yanında <b>Üzrsüz</b>, <b>Xəstəlik</b> və ya <b>Üzrlü</b> düyməsinə basın. Avtomatik saxlanır. Düzəliş üçün <b>Gəlib</b> düyməsinə basın.</li><li>İstəsəniz görülən tədbiri yazın (məs. valideynlə danışıldı).</li><li>Aşağıdakı <b>Yayınanlar cədvəli</b>-ndə həmin gün yayınan bütün şagirdlər görünür. Sətrə toxunsanız şagirdin bütün tarixçəsi açılır.</li></ol>`),
    D("5. Şagird əlavə etmək və tarixçə",`<ul><li><b>Yeni şagird:</b> <b>+ Yeni şagird əlavə et</b> düyməsinə basın. Soyad, ad, ata adı, sinif, UTİS (rəqəm) və FİN (7 simvol) yazıb saxlayın.</li><li><b>Düzəliş və ya silmə:</b> şagird məlumatını yalnız idarə (administrator) dəyişə və ya silə bilər. Səhv olsa idarəyə müraciət edin.</li><li><b>Bərpa:</b> şagird dərsə qayıdıbsa, tarixçədə tarixi seçib <b>Bərpa olundu</b> düyməsinə basın.</li></ul>`),
