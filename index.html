@@ -411,7 +411,7 @@ body.camfull{overflow:hidden}
               <div class="sbox"><b id="vUni">0</b></div></div>
           </div>
           <button class="btn ok" id="save"><svg class="ic"><use href="#i-save"/></svg>Qeyd et</button>
-          <p class="note" id="calHint" style="margin:0 0 10px;color:#b45309;font-weight:700">⚠️ Forma hələ öyrədilməyib, nəticə dəqiq olmaya bilər. Aşağıdakı addımla öyrədin.</p>
+          <p class="note" id="calHint" style="margin:0 0 10px;color:#b45309;font-weight:700">⚠️ Forma hələ öyrədilməyib: sistem sinfin əksəriyyətinin geyimini forma sayır. Səhv varsa qutulara toxunub düzəldin və aşağıdakı 🎯 düyməsini basın.</p>
           <button class="btn sec" id="calBtn">🎯 Formanı öyrət</button>
           <button class="btn sec" id="retake"><svg class="ic"><use href="#i-refresh"/></svg>Yenidən çək</button>
           <p class="note"><b>Forma səhv tanınırsa:</b><br>1. Şəkildəki qutulara toxunun: formalı şagird yaşıl ✓, formasız şagird qırmızı ✗ olsun.<br>2. <b>🎯 Formanı öyrət</b> düyməsinə basın.<br>Bundan sonra sistem sizin məktəbin formasını tanıyacaq. Artıq qutunu silmək üçün ona, tapılmayan şagird üçün isə onun yerinə uzun basın (əlavə olunur). Yaşıl ✓ formada, qırmızı ✗ formada deyil. Səhv göstərilibsə, şəkildəki qutuya toxunaraq düzəldin. Şəkil heç bir yerə göndərilmir, yalnız rəqəmlər qeyd olunur.</p>
@@ -530,6 +530,7 @@ body.camfull{overflow:hidden}
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
 <script>
@@ -681,15 +682,60 @@ function leaveWork() { camFull(false); $("dirNav").classList.remove("hidden"); s
 $("backBtn").onclick = () => { leaveWork(); renderPick(); };
 
 /* ---------- MODEL və KAMERA ---------- */
+/* ===== YOLOX (ONNX, brauzerdə) ===== */
+let YSZ = 416;
+async function loadYolox(file, size) {
+  YSZ = size || 416;
+  if (!window.ort) throw new Error("ort");
+  ort.env.wasm.wasmPaths = window.__ORT_PATH || "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/";
+  ort.env.wasm.numThreads = 1;
+  const sess = await ort.InferenceSession.create(file, { executionProviders: ["wasm"] });
+  const gx = [], gy = [], gs = [];
+  [8, 16, 32].forEach(s => { const n = YSZ / s; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { gx.push(x); gy.push(y); gs.push(s); } });
+  const lb = document.createElement("canvas"); lb.width = lb.height = YSZ; const lx = lb.getContext("2d", { willReadFrequently: true });
+  const N = YSZ * YSZ, inName = sess.inputNames[0];
+  return {
+    kind: "yolox",
+    async detect(c, max, thr) {
+      const r = Math.min(YSZ / c.width, YSZ / c.height), nw = Math.round(c.width * r), nh = Math.round(c.height * r);
+      lx.fillStyle = "rgb(114,114,114)"; lx.fillRect(0, 0, YSZ, YSZ); lx.drawImage(c, 0, 0, nw, nh);
+      const d = lx.getImageData(0, 0, YSZ, YSZ).data, t = new Float32Array(3 * N);
+      for (let i = 0; i < N; i++) { t[i] = d[i * 4 + 2]; t[N + i] = d[i * 4 + 1]; t[2 * N + i] = d[i * 4]; }
+      const res = await sess.run({ [inName]: new ort.Tensor("float32", t, [1, 3, YSZ, YSZ]) });
+      const o = res[sess.outputNames[0]].data, K = o.length / gx.length, cand = [];
+      for (let i = 0; i < gx.length; i++) {
+        const sc = o[i * K + 4] * o[i * K + 5]; if (sc < thr) continue;
+        const cx = (o[i * K] + gx[i]) * gs[i], cy = (o[i * K + 1] + gy[i]) * gs[i], w = Math.exp(o[i * K + 2]) * gs[i], h = Math.exp(o[i * K + 3]) * gs[i];
+        cand.push({ s: sc, x1: (cx - w / 2) / r, y1: (cy - h / 2) / r, x2: (cx + w / 2) / r, y2: (cy + h / 2) / r });
+      }
+      cand.sort((a, b) => b.s - a.s); const keep = [];
+      for (const p of cand) {
+        if (keep.length >= (max || 100)) break;
+        const A = (p.x2 - p.x1) * (p.y2 - p.y1);
+        if (!keep.some(q => { const ix = Math.max(0, Math.min(p.x2, q.x2) - Math.max(p.x1, q.x1)), iy = Math.max(0, Math.min(p.y2, q.y2) - Math.max(p.y1, q.y1)), I = ix * iy; return I / (A + (q.x2 - q.x1) * (q.y2 - q.y1) - I) > 0.5; })) keep.push(p);
+      }
+      return keep.map(p => { const x = Math.max(0, p.x1), y = Math.max(0, p.y1), x2 = Math.min(c.width, p.x2), y2 = Math.min(c.height, p.y2); return { class: "person", score: p.s, bbox: [x, y, x2 - x, y2 - y] }; });
+    }
+  };
+}
+
+async function loadCoco() {
+  if (!window.cocoSsd) throw new Error("kitabxana yüklənmədi");
+  try { await tf.ready(); } catch (_) {}
+  let m; try { m = await cocoSsd.load({ base: "mobilenet_v2" }); } catch (_) { m = await cocoSsd.load({ base: "lite_mobilenet_v2" }); }
+  m.kind = "coco"; return m;
+}
+let modelP = null;
 async function ensureModel() {
   if (model) return model;
-  if (!window.cocoSsd) throw new Error("kitabxana yüklənmədi");
-  if (!$("msg").querySelector(".err")) $("msg").textContent = "Model yüklənir (ilk dəfə 10-30 saniyə çəkə bilər)...";
-  try { await tf.ready(); } catch (_) {}
-  try { model = await cocoSsd.load({ base: "mobilenet_v2" }); }
-  catch (_) { try { model = await cocoSsd.load({ base: "lite_mobilenet_v2" }); } catch (e2) { await tf.setBackend("cpu"); await tf.ready(); model = await cocoSsd.load({ base: "lite_mobilenet_v2" }); } }
-  if ($("msg").textContent.startsWith("Model yüklənir")) $("msg").textContent = "";
-  return model;
+  if (!modelP) modelP = (async () => {
+    if (!$("msg").querySelector(".err")) $("msg").textContent = "Model yüklənir (ilk dəfə bir az çəkə bilər)...";
+    try { model = await loadYolox("yolox.onnx", 640); }
+    catch (e) { console.warn("yolox", e); toast("Yeni model faylı (yolox.onnx) tapılmadı, köhnə model işlədilir"); model = await loadCoco(); }
+    if ($("msg").textContent.startsWith("Model yüklənir")) $("msg").textContent = "";
+    return model;
+  })();
+  try { return await modelP; } catch (e) { modelP = null; throw e; }
 }
 async function widen() {
   try {
@@ -700,7 +746,7 @@ async function widen() {
   } catch (_) {}
   try { const tr = stream.getVideoTracks()[0], cap = tr.getCapabilities && tr.getCapabilities(); if (cap && cap.zoom) await tr.applyConstraints({ advanced: [{ zoom: cap.zoom.min }] }); } catch (_) {}
 }
-let zmode = null, zcur = 1, pz = null, camRot = 0, liveTick = 0;
+let zmode = null, zcur = 1, pz = null, camRot = 0, liveTick = 0, lastLiveN = 0;
 const rotCanvas = (c, deg, maxSide) => { const k = maxSide ? Math.min(1, maxSide / Math.max(c.width, c.height)) : 1, sw = Math.round(c.width * k), sh = Math.round(c.height * k), o = document.createElement("canvas"), sp = deg % 180;
   o.width = sp ? sh : sw; o.height = sp ? sw : sh; const x = o.getContext("2d"); x.translate(o.width / 2, o.height / 2); x.rotate(deg * Math.PI / 180); x.drawImage(c, -sw / 2, -sh / 2, sw, sh); return o; };
 const countP = async c => (await model.detect(c, 60, 0.3)).filter(p => p.class === "person" && p.score >= 0.4).length;
@@ -781,7 +827,7 @@ function startLive() {
   liveT = setInterval(async () => {
     const v = $("video"); if (liveBusy || !stream || !v.videoWidth || !cur) return; liveBusy = true;
     try {
-      const c = grab(v, 800), ps = (await model.detect(c, 60, 0.3)).filter(p => p.class === "person");
+      const c = grab(v, 800), ps = (await model.detect(c, 60, 0.3)).filter(p => p.class === "person"); lastLiveN = ps.length;
       if (++liveTick % 4 === 0) {
         const a90 = await countP(rotCanvas(c, 90, 640)), a270 = await countP(rotCanvas(c, 270, 640)), n0 = ps.filter(p => p.score >= 0.4).length, bd = a90 >= a270 ? 90 : 270, bn = Math.max(a90, a270);
         if (bn >= n0 + 2 && bn >= n0 * 1.4) { camRot = (camRot + bd) % 360; vidTf(); liveBusy = false; return; }
@@ -790,7 +836,7 @@ function startLive() {
         $("liveCnt").textContent = `Kadrda təxminən ${ps.length} nəfər görünür · siyahıda ${cur.r}`; }
     } catch (_) {}
     liveBusy = false;
-  }, 1000);
+  }, 2000);
 }
 function stopCam() { stopLive(); if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
 $("retake").onclick = () => { ex = { u: 0, n: 0 }; $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden"); $("stage").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("msg").textContent = ""; startCam(); };
@@ -927,7 +973,7 @@ async function analyze(src, w, h, maxSide) {
     const k = Math.min(1, (maxSide || 1280) / Math.max(w, h)); c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
     c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
   } catch (e) { $("msg").innerHTML = '<span class="err">Şəkil oxunmadı. Yenidən cəhd edin.</span>'; return; }
-  try { await ensureModel(); const d = await bestRot(c); if (d) c = rotCanvas(c, d, 0); } catch (_) {}
+  try { await ensureModel(); if (lastLiveN < 4) { const d = await bestRot(c); if (d) c = rotCanvas(c, d, 0); } } catch (_) {}
   try { await analyzeInner(c, c.width, c.height); }
   catch (e1) {
     try { await tf.setBackend("cpu"); await tf.ready(); await analyzeInner(c, c.width, c.height); }
@@ -939,18 +985,18 @@ async function analyze(src, w, h, maxSide) {
   }
 }
 async function detectAll(base, w, h) {
-  const out = [], add = (arr, ox, oy, k) => arr.forEach(p => { if (p.class === "person" && p.score >= 0.3) { const [x, y, bw, bh] = p.bbox; out.push({ bbox: [x / k + ox, y / k + oy, bw / k, bh / k], score: p.score }); } });
-  add(await model.detect(base, 100, 0.3), 0, 0, 1);
-  const cols = w >= h ? 3 : 2, rows = w >= h ? 2 : 3, ov = 0.25, k = 1.6, tw = Math.round(w / cols * (1 + ov)), th = Math.round(h / rows * (1 + ov));
+  const yo = model.kind === "yolox", tmin = yo ? 0.45 : 0.3, out = [], add = (arr, ox, oy, k, mn) => arr.forEach(p => { if (p.class === "person" && p.score >= mn) { const [x, y, bw, bh] = p.bbox; out.push({ bbox: [x / k + ox, y / k + oy, bw / k, bh / k], score: p.score }); } });
+  add(await model.detect(base, 100, 0.3), 0, 0, 1, 0.3);
+  const cols = w >= h ? 3 : 2, rows = w >= h ? 2 : 3, ov = 0.25, k = yo ? 1 : 1.6, tw = Math.round(w / cols * (1 + ov)), th = Math.round(h / rows * (1 + ov));
   const t = document.createElement("canvas"); t.width = Math.round(tw * k); t.height = Math.round(th * k); const tx = t.getContext("2d");
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const x0 = Math.min(Math.max(0, Math.round(c * w / cols - w / cols * ov / 2)), w - tw), y0 = Math.min(Math.max(0, Math.round(r * h / rows - h / rows * ov / 2)), h - th);
-    tx.drawImage(base, x0, y0, tw, th, 0, 0, t.width, t.height); add(await model.detect(t, 100, 0.3), x0, y0, k);
+    $("msg").textContent = `Sayılır... (${r * cols + c + 1}/${rows * cols})`; tx.drawImage(base, x0, y0, tw, th, 0, 0, t.width, t.height); add(await model.detect(t, 100, tmin), x0, y0, k, tmin);
   }
   out.sort((a, b) => b.score - a.score); const keep = [], ar = q => q[2] * q[3];
   for (const p of out) {
     const dup = keep.some(kp => { const A = p.bbox, B = kp.bbox, ix = Math.max(0, Math.min(A[0] + A[2], B[0] + B[2]) - Math.max(A[0], B[0])), iy = Math.max(0, Math.min(A[1] + A[3], B[1] + B[3]) - Math.max(A[1], B[1])), I = ix * iy;
-      const iou = I / (ar(A) + ar(B) - I), cont = I / Math.min(ar(A), ar(B)), ratio = Math.max(ar(A), ar(B)) / Math.min(ar(A), ar(B)); return iou > 0.45 || (cont > 0.8 && ratio <= 2); });
+      const iou = I / (ar(A) + ar(B) - I), cont = I / Math.min(ar(A), ar(B)), ratio = Math.max(ar(A), ar(B)) / Math.min(ar(A), ar(B)); return iou > 0.4 || (cont > 0.7 && ratio <= 2.5); });
     if (!dup) keep.push(p);
   }
   return keep.filter(p => p.bbox[2] * p.bbox[3] >= 0.002 * w * h && p.bbox[3] / p.bbox[2] <= 5 && p.bbox[3] / p.bbox[2] >= 0.5);
@@ -963,7 +1009,8 @@ async function analyzeInner(src, w, h) {
   stopCam(); camFull(false); $("video").classList.add("hidden"); $("zbar").classList.add("hidden"); $("video").style.transform = "";
   const keep = await detectAll(base, w, h);
   const set = SETS[cfg.set] || SETS.goy, thr = (+cfg.thr || 40) / 100, upL = set.up.map(hexLab), thrD = 11.5 - (+cfg.thr || 40) * 0.075, cal = calOK() ? cfg.cal : null;
-  const classify = f => cal ? (() => { const dp = near(f.c, cal.up), dn = cal.neg && cal.neg.length ? near(f.c, cal.neg) : Infinity; return dp <= thrD && dp <= dn; })() : f.share >= thr;
+  let auto = null;
+  const classify = f => cal ? (() => { const dp = near(f.c, cal.up), dn = cal.neg && cal.neg.length ? near(f.c, cal.neg) : Infinity; return dp <= thrD && dp <= dn; })() : auto ? chamfer(f.c, auto.c) <= auto.T : f.share >= thr;
   const make = (x, y, bw, bh) => {
     const standing = bh / bw > 2.0 && y + bh < h * 0.97;
     const d = region(bx, x, y, bw, bh, standing ? 0.2 : 0.25, standing ? 0.8 : 0.75, standing ? 0.2 : 0.28, standing ? 0.5 : 0.62, w, h);
@@ -971,6 +1018,12 @@ async function analyzeInner(src, w, h) {
     return { x, y, bw, bh, u: classify(f), f };
   };
   const persons = keep.map(p => make(p.bbox[0], p.bbox[1], p.bbox[2], p.bbox[3]));
+  if (!cal && persons.length >= 3) {
+    const n = persons.length, D = persons.map(a => persons.map(b => chamfer(a.f.c, b.f.c))), md = a => { a = a.slice().sort((x, y) => x - y); return a[a.length >> 1]; };
+    let m = 0, bm = 1e9; for (let i = 0; i < n; i++) { const v = md(D[i].filter((_, j) => j !== i)); if (v < bm) { bm = v; m = i; } }
+    const T = Math.max(6.5, 1.6 * md(D[m].filter((_, j) => j !== m))); auto = { c: persons[m].f.c, T };
+    persons.forEach(p => { p.u = chamfer(p.f.c, auto.c) <= T; });
+  }
   shot = { base, bx, persons, w, h, make };
   calcSt();
   $("canvas").classList.remove("hidden"); render();
