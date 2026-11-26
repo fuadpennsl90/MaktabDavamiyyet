@@ -87,7 +87,7 @@
     display:grid;place-items:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
   #logout:active{transform:scale(.92)}
   main{max-width:640px;margin:-46px auto 0;padding:0 16px calc(120px + var(--sab));position:relative;z-index:2}
-  .tab{animation:pop .28s ease both}
+  .tab{animation:pop .28s ease backwards}
   @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   .card{background:var(--card);border-radius:26px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
   .card h2{font-size:17px;font-weight:800;margin:0 0 4px;letter-spacing:-.2px}
@@ -271,6 +271,31 @@
 #guide .tip{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f3efff;font-size:13px;font-weight:700;color:var(--v)}
 #helpBtn{width:44px;height:44px;border-radius:15px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.18);color:#fff;font-size:20px;font-weight:800;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .hlink{display:block;margin:16px auto 0;border:0;background:none;color:var(--v);font-weight:800;font-size:14px;text-decoration:underline}
+/* ---- TAM EKRAN KAMERA ---- */
+body.camfull{overflow:hidden}
+#work.full>.card:first-child{background:transparent;box-shadow:none;padding:0;margin:0}
+#work.full .stage{position:fixed;inset:0;z-index:100;margin:0;border-radius:0;min-height:0;background:#000}
+#work.full .stage video{position:absolute!important;inset:0;width:100%!important;height:100%!important;object-fit:contain;background:#000}
+#work.full #live{object-fit:contain}
+#work.full .corner{display:none}
+#panoBar{display:none}
+#work.full #panoBar{display:flex;position:fixed;z-index:102;left:14px;right:14px;bottom:calc(176px + var(--sab));gap:8px;align-items:center;color:#fff;font-size:13px;font-weight:800;text-shadow:0 1px 4px #000}
+.pbtn{border:0;border-radius:14px;padding:10px 13px;font-size:13px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pbtn.on{background:var(--v)}.pbtn.go{background:var(--ok)}
+#ghost{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;background:transparent!important}
+#work.full .top{position:fixed;top:0;left:0;right:0;z-index:102;margin:0;padding:calc(var(--sat) + 10px) 14px 24px;background:linear-gradient(rgba(0,0,0,.6),transparent);color:#fff}
+#work.full .top b{color:#fff}
+#work.full #liveCnt{position:fixed;z-index:102;top:calc(var(--sat) + 62px);left:14px;right:14px;margin:0!important;color:#fff;text-shadow:0 1px 4px #000;font-size:14px}
+#work.full #camTip{position:fixed;z-index:102;top:calc(var(--sat) + 90px);left:14px;right:14px;margin:0!important;color:#e5e7eb;text-shadow:0 1px 4px #000;font-size:12px}
+#work.full #zbar{position:fixed;z-index:102;left:14px;right:14px;bottom:calc(104px + var(--sab));margin:0;color:#fff;background:rgba(0,0,0,.45);padding:8px 12px;border-radius:20px}
+#work.full #zbar input[type=range]{background:rgba(255,255,255,.4);height:8px;border-radius:8px;align-self:center}
+#work.full #zbar .sbtn{background:rgba(255,255,255,.22);color:#fff}
+#work.full #zbar b{color:#fff}
+#work.full #msg{position:fixed;z-index:102;left:14px;right:14px;bottom:calc(244px + var(--sab));color:#fff;margin:0}
+#work.full #msg:not(:empty){background:rgba(0,0,0,.6);padding:10px 12px;border-radius:14px}
+#work.full .err{color:#fecdd3}
+#work.full #capBtns{position:fixed;z-index:102;left:0;right:0;bottom:0;padding:12px 18px calc(16px + var(--sab));background:linear-gradient(transparent,rgba(0,0,0,.6))}
+#work.full #capBtns .btn{margin:0}
 #live{position:absolute!important;inset:0;width:100%!important;height:100%!important;z-index:2!important;pointer-events:none;background:transparent!important}
 .zbar{display:flex;align-items:center;gap:10px;margin-top:12px}.zbar input{flex:1}
 #stage{touch-action:pan-y}
@@ -364,12 +389,14 @@
             <video id="video" playsinline muted autoplay class="hidden"></video>
             <canvas id="canvas" class="hidden"></canvas>
             <canvas id="live" class="hidden"></canvas>
+            <canvas id="ghost" class="hidden"></canvas>
             <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
           </div>
-          <div class="zbar hidden" id="zbar"><button class="sbtn" id="zOut" aria-label="Uzaqlaş">−</button><input type="range" id="zoom" min="1" max="4" step="0.1" value="1"><button class="sbtn" id="zIn" aria-label="Yaxınlaş">+</button><b id="zVal" style="min-width:42px;text-align:right">1×</b></div>
+          <div class="zbar hidden" id="zbar"><button class="sbtn" id="zRot" aria-label="Döndər">↻</button><button class="sbtn" id="zOut" aria-label="Uzaqlaş">−</button><input type="range" id="zoom" min="1" max="4" step="0.1" value="1"><button class="sbtn" id="zIn" aria-label="Yaxınlaş">+</button><b id="zVal" style="min-width:42px;text-align:right">1×</b></div>
           <div id="liveCnt" class="hint" style="margin:8px 2px 0;font-weight:700"></div>
+          <div id="panoBar"><button class="pbtn" id="camSw" aria-label="Kamera">📷 Kamera</button><button class="pbtn" id="panoTog">↔ Panorama</button><span id="panoCnt"></span><button class="pbtn go hidden" id="panoDone">✔ Bitir</button><button class="pbtn hidden" id="panoRst">✖</button></div>
           <div id="msg"></div>
-          <p class="hint" style="margin:10px 2px 0">💡 Telefonu üfüqi (yan) tutun və sinfi arxa küncdən çəkin, beləcə hamı sığır.</p>
+          <p class="hint" id="camTip" style="margin:10px 2px 0">💡 Telefonu üfüqi (yan) tutun və sinfi arxa küncdən çəkin, beləcə hamı sığır.</p>
           <div id="capBtns">
             <button class="btn" id="snap" disabled><svg class="ic"><use href="#i-cam"/></svg>Şəkil çək</button>
           </div>
@@ -643,14 +670,14 @@ $("cgrid").onclick = e => {
 };
 
 function startClass(c) {
-  cur = c; shot = null; acc = []; ex = { u: 0, n: 0 }; st = { present: 0, uni: 0 };
+  cur = c; camRot = 0; shot = null; acc = []; panoOn = false; pano = []; panoUI(); ex = { u: 0, n: 0 }; st = { present: 0, uni: 0 };
   $("curCls").textContent = c.n; $("curSlot").textContent = slot;
   $("pick").classList.add("hidden"); $("work").classList.remove("hidden"); $("dirNav").classList.add("hidden");
   $("stage").classList.remove("hidden"); $("capBtns").classList.remove("hidden"); $("resBox").classList.add("hidden");
   $("canvas").classList.add("hidden"); $("msg").textContent = "";
   window.scrollTo({ top: 0, behavior: "smooth" }); startCam();
 }
-function leaveWork() { $("dirNav").classList.remove("hidden"); stopCam(); $("video").classList.add("hidden"); $("work").classList.add("hidden"); $("pick").classList.remove("hidden"); }
+function leaveWork() { camFull(false); $("dirNav").classList.remove("hidden"); stopCam(); $("video").classList.add("hidden"); $("work").classList.add("hidden"); $("pick").classList.remove("hidden"); }
 $("backBtn").onclick = () => { leaveWork(); renderPick(); };
 
 /* ---------- MODEL və KAMERA ---------- */
@@ -667,17 +694,36 @@ async function ensureModel() {
 async function widen() {
   try {
     const devs = await navigator.mediaDevices.enumerateDevices(), cur = stream.getVideoTracks()[0].getSettings().deviceId;
-    const uw = devs.find(d => d.kind === "videoinput" && /ultra|0[.,]5|wide/i.test(d.label) && !/front|user|ön/i.test(d.label));
+    const back = devs.filter(d => d.kind === "videoinput" && !/front|user|ön/i.test(d.label)), uw = back.find(d => /ultra/i.test(d.label)) || back.find(d => /0[.,]5/.test(d.label));
+    if (!uw) toast("Bu telefonda geniş bucaqlı kamera tapılmadı. Panorama rejimindən istifadə edin.");
     if (uw && uw.deviceId !== cur) { const s2 = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: uw.deviceId }, width: { ideal: 1920 } }, audio: false }); stopCam(); stream = s2; }
   } catch (_) {}
   try { const tr = stream.getVideoTracks()[0], cap = tr.getCapabilities && tr.getCapabilities(); if (cap && cap.zoom) await tr.applyConstraints({ advanced: [{ zoom: cap.zoom.min }] }); } catch (_) {}
 }
-let zmode = null, zcur = 1, pz = null;
+let zmode = null, zcur = 1, pz = null, camRot = 0, liveTick = 0;
+const rotCanvas = (c, deg, maxSide) => { const k = maxSide ? Math.min(1, maxSide / Math.max(c.width, c.height)) : 1, sw = Math.round(c.width * k), sh = Math.round(c.height * k), o = document.createElement("canvas"), sp = deg % 180;
+  o.width = sp ? sh : sw; o.height = sp ? sw : sh; const x = o.getContext("2d"); x.translate(o.width / 2, o.height / 2); x.rotate(deg * Math.PI / 180); x.drawImage(c, -sw / 2, -sh / 2, sw, sh); return o; };
+const countP = async c => (await model.detect(c, 60, 0.3)).filter(p => p.class === "person" && p.score >= 0.4).length;
+async function bestRot(c) {
+  const r = [0, 90, 270], n = []; for (const d of r) n.push(await countP(rotCanvas(c, d, 640)));
+  const b = n.indexOf(Math.max(...n)); return (b > 0 && n[b] >= n[0] + 2 && n[b] >= n[0] * 1.4) ? r[b] : 0;
+}
+function grab(v, maxSide) {
+  const z = zmode === "dig" && zcur > 1.01 ? zcur : 1, sw = v.videoWidth / z, sh = v.videoHeight / z, sx = (v.videoWidth - sw) / 2, sy = (v.videoHeight - sh) / 2;
+  const k = maxSide ? Math.min(1, maxSide / Math.max(sw, sh)) : 1, dw = Math.round(sw * k), dh = Math.round(sh * k), sp = camRot % 180, o = document.createElement("canvas");
+  o.width = sp ? dh : dw; o.height = sp ? dw : dh; const x = o.getContext("2d"); x.translate(o.width / 2, o.height / 2); x.rotate(camRot * Math.PI / 180); x.drawImage(v, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh); return o;
+}
+function vidTf() {
+  const v = $("video"), st = $("stage"), w = st.clientWidth, h = st.clientHeight, sp = camRot % 180, z = zmode === "dig" ? zcur : 1;
+  if (!w) { v.style.transform = z > 1 ? `scale(${z})` : ""; return; }
+  Object.assign(v.style, { inset: "auto", top: "50%", left: "50%", width: (sp ? h : w) + "px", height: (sp ? w : h) + "px", transform: `translate(-50%,-50%) rotate(${camRot}deg) scale(${z})` });
+}
+addEventListener("resize", () => { if (stream) vidTf(); });
 const zClamp = v => Math.min(+$("zoom").max, Math.max(+$("zoom").min, v));
 async function applyZoom(v) {
   zcur = zClamp(+v); $("zoom").value = zcur; $("zVal").textContent = (Math.round(zcur * 10) / 10) + "×"; const vd = $("video");
-  if (zmode === "hw") { vd.style.transform = ""; try { await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: zcur }] }); } catch (_) {} }
-  else vd.style.transform = `scale(${zcur})`;
+  if (zmode === "hw") { try { await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: zcur }] }); } catch (_) {} }
+  vidTf();
 }
 function setupZoom() {
   let cap = null; try { const tr = stream.getVideoTracks()[0]; cap = tr.getCapabilities && tr.getCapabilities(); } catch (_) {}
@@ -686,6 +732,7 @@ function setupZoom() {
   else { zmode = "dig"; z.min = 1; z.max = 4; z.step = 0.1; }
   $("zbar").classList.remove("hidden"); applyZoom(+z.min);
 }
+$("zRot").onclick = () => { camRot = (camRot + 90) % 360; buzz(10); vidTf(); };
 $("zoom").oninput = () => applyZoom($("zoom").value);
 $("zIn").onclick = () => applyZoom(zcur + (zmode === "hw" ? (+$("zoom").max - +$("zoom").min) / 8 : 0.5));
 $("zOut").onclick = () => applyZoom(zcur - (zmode === "hw" ? (+$("zoom").max - +$("zoom").min) / 8 : 0.5));
@@ -693,15 +740,21 @@ const tdist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].c
 $("stage").addEventListener("touchstart", e => { if (e.touches.length === 2 && !$("zbar").classList.contains("hidden")) pz = { d: tdist(e.touches), z: zcur }; }, { passive: true });
 $("stage").addEventListener("touchmove", e => { if (pz && e.touches.length === 2) { e.preventDefault(); applyZoom(pz.z * tdist(e.touches) / pz.d); } }, { passive: false });
 $("stage").addEventListener("touchend", () => { pz = null; });
-async function startCam() {
-  $("zbar").classList.add("hidden"); $("video").style.transform = "";
+function camFull(on) {
+  if (!on) $("video").removeAttribute("style");
+  $("work").classList.toggle("full", on); document.body.classList.toggle("camfull", on);
+  try { if (on && !document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (_) {}
+}
+async function startCam(devId) {
+  const dev = typeof devId === "string" ? devId : null;
+  camFull(true); $("zbar").classList.add("hidden"); $("video").style.transform = "";
   const msg = $("msg"); msg.textContent = ""; $("snap").disabled = true; stopCam();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     msg.innerHTML = '<span class="err">Kamera bu brauzerdə işləmir və ya sayt https ilə açılmayıb.</span>';
   } else try {
-    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } }, audio: false }); }
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: dev ? { deviceId: { exact: dev }, width: { ideal: 1920 } } : { facingMode: { ideal: "environment" }, width: { ideal: 1920 } }, audio: false }); }
     catch (e) { if (["NotAllowedError", "SecurityError", "NotFoundError"].includes(e.name)) throw e; stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
-    await widen();
+    if (!dev) await widen();
     const v = $("video"); v.muted = true; v.setAttribute("playsinline", ""); v.srcObject = stream;
     v.classList.remove("hidden"); $("canvas").classList.add("hidden");
     await new Promise(res => { if (v.readyState >= 2 && v.videoWidth) return res(); v.onloadedmetadata = () => res(); setTimeout(res, 4000); });
@@ -728,10 +781,11 @@ function startLive() {
   liveT = setInterval(async () => {
     const v = $("video"); if (liveBusy || !stream || !v.videoWidth || !cur) return; liveBusy = true;
     try {
-      const k = Math.min(1, 800 / Math.max(v.videoWidth, v.videoHeight)); let sx = 0, sy = 0, sw = v.videoWidth, sh = v.videoHeight;
-      if (zmode === "dig" && zcur > 1.01) { sw /= zcur; sh /= zcur; sx = (v.videoWidth - sw) / 2; sy = (v.videoHeight - sh) / 2; }
-      const c = document.createElement("canvas"); c.width = Math.round(sw * k); c.height = Math.round(sh * k); c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
-      const ps = (await model.detect(c, 60, 0.3)).filter(p => p.class === "person");
+      const c = grab(v, 800), ps = (await model.detect(c, 60, 0.3)).filter(p => p.class === "person");
+      if (++liveTick % 4 === 0) {
+        const a90 = await countP(rotCanvas(c, 90, 640)), a270 = await countP(rotCanvas(c, 270, 640)), n0 = ps.filter(p => p.score >= 0.4).length, bd = a90 >= a270 ? 90 : 270, bn = Math.max(a90, a270);
+        if (bn >= n0 + 2 && bn >= n0 * 1.4) { camRot = (camRot + bd) % 360; vidTf(); liveBusy = false; return; }
+      }
       if (stream) { const l = $("live"); l.width = c.width; l.height = c.height; const x = l.getContext("2d"); x.clearRect(0, 0, l.width, l.height); x.strokeStyle = "#22c55e"; x.lineWidth = Math.max(2, c.width / 300); ps.forEach(p => x.strokeRect(...p.bbox));
         $("liveCnt").textContent = `Kadrda təxminən ${ps.length} nəfər görünür · siyahıda ${cur.r}`; }
     } catch (_) {}
@@ -740,8 +794,73 @@ function startLive() {
 }
 function stopCam() { stopLive(); if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
 $("retake").onclick = () => { ex = { u: 0, n: 0 }; $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden"); $("stage").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("msg").textContent = ""; startCam(); };
-$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin.</span>'; return; } if (zmode === "dig" && zcur > 1.01) { const sw = v.videoWidth / zcur, sh = v.videoHeight / zcur, c = document.createElement("canvas"); c.width = Math.round(sw); c.height = Math.round(sh); c.getContext("2d").drawImage(v, (v.videoWidth - sw) / 2, (v.videoHeight - sh) / 2, sw, sh, 0, 0, c.width, c.height); analyze(c, c.width, c.height); return; }
-  analyze(v, v.videoWidth, v.videoHeight); };
+/* ---------- PANORAMA ---------- */
+let pano = [], panoOn = false, camIdx = -1;
+function grayOf(c, W) { const k = W / c.width, o = document.createElement("canvas"); o.width = W; o.height = Math.round(c.height * k); const x = o.getContext("2d", { willReadFrequently: true }); x.drawImage(c, 0, 0, o.width, o.height);
+  const d = x.getImageData(0, 0, o.width, o.height).data, g = new Float32Array(o.width * o.height); for (let i = 0; i < g.length; i++) g[i] = .299 * d[i * 4] + .587 * d[i * 4 + 1] + .114 * d[i * 4 + 2]; return { g, w: o.width, h: o.height, k }; }
+function nccBest(a, b, dx0, dx1, dy0, dy1, tw, y0, th, st) {
+  let best = { s: -2, dx: dx0, dy: 0 }; const h = Math.min(a.h, b.h);
+  for (let dx = dx0; dx <= dx1; dx++) for (let dy = dy0; dy <= dy1; dy++) {
+    if (y0 + dy < 0 || y0 + dy + th > a.h || y0 + th > b.h || dx + tw > a.w || dx < 0) continue;
+    let sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0, n = 0;
+    for (let y = 0; y < th; y += st) for (let x = 0; x < tw; x += st) { const va = a.g[(y0 + dy + y) * a.w + dx + x], vb = b.g[(y0 + y) * b.w + x]; sa += va; sb += vb; saa += va * va; sbb += vb * vb; sab += va * vb; n++; }
+    const s = (sab - sa * sb / n) / Math.sqrt((saa - sa * sa / n) * (sbb - sb * sb / n) + 1e-6);
+    if (s > best.s) best = { s, dx, dy };
+  }
+  return best;
+}
+function register(A, B) {
+  const a = grayOf(A, 200), b = grayOf(B, 200), h = Math.min(a.h, b.h), tw = Math.round(a.w * .25);
+  const c = nccBest(a, b, Math.round(a.w * .2), a.w - tw, -Math.round(h * .12), Math.round(h * .12), tw, Math.round(h * .2), Math.round(h * .6), 2);
+  const a2 = grayOf(A, 480), b2 = grayOf(B, 480), f = a2.k / a.k, h2 = Math.min(a2.h, b2.h), tw2 = Math.round(a2.w * .25), cx = Math.round(c.dx * f), cy = Math.round(c.dy * f);
+  const r = nccBest(a2, b2, cx - 5, cx + 5, cy - 5, cy + 5, tw2, Math.round(h2 * .2), Math.round(h2 * .6), 2);
+  return { dx: r.dx / a2.k, dy: r.dy / a2.k, s: Math.max(r.s, c.s) };
+}
+function stitch(fr) {
+  const off = [{ x: 0, y: 0 }], sc = [];
+  for (let i = 1; i < fr.length; i++) { const r = register(fr[i - 1], fr[i]); sc.push(r.s); if (r.s < 0.45) return { err: i + 1, s: r.s }; off.push({ x: off[i - 1].x + r.dx, y: off[i - 1].y + r.dy }); }
+  const top = Math.max(...off.map(o => o.y)), bot = Math.min(...off.map((o, i) => o.y + fr[i].height)), W = Math.round(Math.max(...off.map((o, i) => o.x + fr[i].width))), H = Math.round(bot - top);
+  if (H < 50) return { err: 2, s: 0 };
+  const out = document.createElement("canvas"); out.width = W; out.height = H; const x = out.getContext("2d");
+  for (let i = 0; i < fr.length; i++) {
+    const L = i === 0 ? 0 : (off[i].x + off[i - 1].x + fr[i - 1].width) / 2, R = i === fr.length - 1 ? W : (off[i + 1].x + off[i].x + fr[i].width) / 2;
+    const sx = Math.max(0, L - off[i].x), sw = Math.min(fr[i].width - sx, R - L); x.drawImage(fr[i], sx, top - off[i].y, sw, H, L, 0, sw, H);
+  }
+  return { canvas: out, scores: sc, offsets: off };
+}
+function drawGhost() {
+  const g = $("ghost"), st = $("stage");
+  if (!(panoOn && pano.length && stream)) { g.classList.add("hidden"); return; }
+  const sw = st.clientWidth, sh = st.clientHeight, f = pano[pano.length - 1], k = Math.min(sw / f.width, sh / f.height), dw = f.width * k, dh = f.height * k;
+  g.width = sw; g.height = sh; const x = g.getContext("2d"); x.clearRect(0, 0, sw, sh); x.globalAlpha = .45;
+  x.drawImage(f, f.width * .7, 0, f.width * .3, f.height, (sw - dw) / 2, (sh - dh) / 2, dw * .3, dh); g.classList.remove("hidden");
+}
+function panoUI() {
+  $("panoTog").textContent = panoOn ? "↔ Panorama: aktiv" : "↔ Panorama"; $("panoTog").classList.toggle("on", panoOn);
+  $("panoDone").classList.toggle("hidden", !(panoOn && pano.length >= 2)); $("panoRst").classList.toggle("hidden", !(panoOn && pano.length));
+  $("panoCnt").textContent = panoOn ? (pano.length ? pano.length + " şəkil" : "Soldan sağa çəkin") : ""; drawGhost();
+}
+$("panoTog").onclick = () => { panoOn = !panoOn; pano = []; panoUI(); if (panoOn) toast("Soldan sağa çəkin: hər şəkil əvvəlkinin təxminən 30%-ni təkrarlasın"); };
+$("panoRst").onclick = () => { pano = []; panoUI(); };
+$("panoDone").onclick = () => {
+  $("msg").textContent = "Şəkillər birləşdirilir..."; $("panoDone").disabled = true;
+  setTimeout(() => {
+    let r; try { r = stitch(pano); } catch (e) { r = { err: 1, s: 0 }; }
+    $("panoDone").disabled = false;
+    if (!r.canvas) { $("msg").innerHTML = `<span class="err">${r.err}-ci şəkil əvvəlkinə uyğun gəlmədi. Şəkillər üst-üstə düşməlidir (təxminən 30%). "✖" basıb yenidən çəkin.</span>`; return; }
+    $("msg").textContent = ""; const c = r.canvas; panoOn = false; pano = []; panoUI(); analyze(c, c.width, c.height, 2400);
+  }, 60);
+};
+$("camSw").onclick = async () => {
+  try {
+    const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput" && !/front|user|ön/i.test(d.label));
+    if (ds.length < 2) return toast("Bu telefonda başqa arxa kamera tapılmadı");
+    camIdx = (camIdx + 1) % ds.length; toast("Kamera: " + (ds[camIdx].label || "arxa " + (camIdx + 1))); startCam(ds[camIdx].deviceId);
+  } catch (_) { toast("Kamera dəyişdirilmədi"); }
+};
+addEventListener("resize", () => drawGhost());
+$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin.</span>'; return; } if (panoOn) { pano.push(grab(v, 1280)); panoUI(); toast(pano.length + "-ci şəkil götürüldü. Kameranı sağa çevirin, ✔ Bitir ilə tamamlayın"); return; }
+  const c = grab(v, 0); analyze(c, c.width, c.height); };
 /* ---------- FORMA DƏSTLƏRİ (96 saylı qərarın əlavələrindəki rəsmlərdən) ---------- */
 const mk = (name, c, skirt) => ({ name, c, up: [c.shirt, c.trim, c.jack, c.jtrim], low: [c.low, ...(skirt ? [skirt] : [])] });
 const SETS = {
@@ -802,12 +921,13 @@ const chamfer = (f, g) => { let s1 = 0, s2 = 0; f.forEach(p => s1 += p.w * Math.
 const near = (f, list) => Math.min(...list.map(g => chamfer(f, g)));
 const calOK = () => cfg.cal && cfg.cal.v === 2 && cfg.cal.up && cfg.cal.up.length;
 const hexToRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-async function analyze(src, w, h) {
+async function analyze(src, w, h, maxSide) {
   let c;
   try {
-    const k = Math.min(1, 1280 / Math.max(w, h)); c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    const k = Math.min(1, (maxSide || 1280) / Math.max(w, h)); c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
     c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
   } catch (e) { $("msg").innerHTML = '<span class="err">Şəkil oxunmadı. Yenidən cəhd edin.</span>'; return; }
+  try { await ensureModel(); const d = await bestRot(c); if (d) c = rotCanvas(c, d, 0); } catch (_) {}
   try { await analyzeInner(c, c.width, c.height); }
   catch (e1) {
     try { await tf.setBackend("cpu"); await tf.ready(); await analyzeInner(c, c.width, c.height); }
@@ -840,7 +960,7 @@ async function analyzeInner(src, w, h) {
   try { await ensureModel(); } catch (e) { $("msg").innerHTML = '<span class="err">Model yüklənmədi. İnterneti yoxlayıb yenidən cəhd edin.</span>'; return; }
   const base = document.createElement("canvas"); base.width = w; base.height = h;
   const bx = base.getContext("2d", { willReadFrequently: true }); bx.drawImage(src, 0, 0, w, h);
-  stopCam(); $("video").classList.add("hidden"); $("zbar").classList.add("hidden"); $("video").style.transform = "";
+  stopCam(); camFull(false); $("video").classList.add("hidden"); $("zbar").classList.add("hidden"); $("video").style.transform = "";
   const keep = await detectAll(base, w, h);
   const set = SETS[cfg.set] || SETS.goy, thr = (+cfg.thr || 40) / 100, upL = set.up.map(hexLab), thrD = 11.5 - (+cfg.thr || 40) * 0.075, cal = calOK() ? cfg.cal : null;
   const classify = f => cal ? (() => { const dp = near(f.c, cal.up), dn = cal.neg && cal.neg.length ? near(f.c, cal.neg) : Infinity; return dp <= thrD && dp <= dn; })() : f.share >= thr;
@@ -1451,7 +1571,7 @@ const l=document.createElement("link");l.rel="manifest";l.href=URL.createObjectU
   const D=(t,b,o)=>`<details${o?" open":""}><summary>${t}</summary>${b}</details>`;
   const dir=[
    D("1. Sistemə giriş",`<ol><li>Saytı açın.</li><li>Məktəbinizə verilən <b>girişi</b> və <b>parolu</b> yazın.</li><li><b>Daxil ol</b> düyməsinə basın.</li></ol><div class="tip">Giriş və parolu bilmirsinizsə, regional təhsil idarəsinə müraciət edin.</div>`,1),
-   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: şəkildəki qutulara toxunub formalı şagirdi yaşıl ✓, formasızı qırmızı ✗ edin, sonra <b>🎯 Formanı öyrət</b> düyməsinə basın.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li>Kamerada <b>+ / −</b> düymələri və ya slayder ilə yaxınlaşıb uzaqlaşa bilərsiniz (iki barmaqla da olur).</li><li>Kamerada yaşıl qutular və <b>"Kadrda təxminən N nəfər"</b> yazısı canlı görünür. Sayı siyahıdakı sayla müqayisə edib telefonu elə yerləşdirin ki, hamı kadra düşsün.</li><li>Hamı kameraya sığsın deyə telefonu <b>üfüqi (yan)</b> tutun və sinfi arxa küncdən çəkin. Artıq və ya səhv qutunu silmək üçün ona uzun basın.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
+   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: şəkildəki qutulara toxunub formalı şagirdi yaşıl ✓, formasızı qırmızı ✗ edin, sonra <b>🎯 Formanı öyrət</b> düyməsinə basın.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Hamı bir kadra sığmırsa:</b> <b>↔ Panorama</b> düyməsinə basın. Sinfi soldan sağa 2-3 şəkildə çəkin, hər şəkil əvvəlkinin təxminən 30%-ni təkrarlasın (ekranda əvvəlki şəklin silik kənarı görünür). Sonra <b>✔ Bitir</b> basın. Şəkillər bir şəkildə birləşir, heç kim iki dəfə sayılmır. <b>📷 Kamera</b> düyməsi ilə geniş bucaqlı kameraya keçə bilərsiniz.</li><li>Kamerada <b>+ / −</b> düymələri və ya slayder ilə yaxınlaşıb uzaqlaşa bilərsiniz (iki barmaqla da olur).</li><li>Kamerada yaşıl qutular və <b>"Kadrda təxminən N nəfər"</b> yazısı canlı görünür. Sayı siyahıdakı sayla müqayisə edib telefonu elə yerləşdirin ki, hamı kadra düşsün.</li><li>Hamı kameraya sığsın deyə telefonu <b>üfüqi (yan)</b> tutun və sinfi arxa küncdən çəkin. Artıq və ya səhv qutunu silmək üçün ona uzun basın.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
    D("3. Kamera işləmirsə",`<ul><li>Brauzer kameraya icazə istəyəndə <b>İcazə ver</b> seçin.</li><li>Kamera başqa tətbiqdə açıqdırsa, onu bağlayın.</li><li>Forma düzgün olan şagird qırmızı çıxırsa, <b>Tənzimləmələr</b>-də uyğunluq həddini azaldın.</li></ul>`),
    D("4. Təhsildən yayınanlar",`<ol><li>Alt menyuda <b>Təhsildən Yayınanlar</b> bölməsini açın.</li><li>Sinfi və tarixi seçin.</li><li>Dərsə gəlməyən şagirdin yanında <b>Üzrsüz</b>, <b>Xəstəlik</b> və ya <b>Üzrlü</b> düyməsinə basın. Avtomatik saxlanır. Düzəliş üçün <b>Gəlib</b> düyməsinə basın.</li><li>İstəsəniz görülən tədbiri yazın (məs. valideynlə danışıldı).</li><li>Aşağıdakı <b>Yayınanlar cədvəli</b>-ndə həmin gün yayınan bütün şagirdlər görünür. Sətrə toxunsanız şagirdin bütün tarixçəsi açılır.</li></ol>`),
    D("5. Şagird əlavə etmək və tarixçə",`<ul><li><b>Yeni şagird:</b> <b>+ Yeni şagird əlavə et</b> düyməsinə basın. Soyad, ad, ata adı, sinif, UTİS (rəqəm) və FİN (7 simvol) yazıb saxlayın.</li><li><b>Düzəliş və ya silmə:</b> şagird məlumatını yalnız idarə (administrator) dəyişə və ya silə bilər. Səhv olsa idarəyə müraciət edin.</li><li><b>Bərpa:</b> şagird dərsə qayıdıbsa, tarixçədə tarixi seçib <b>Bərpa olundu</b> düyməsinə basın.</li></ul>`),
