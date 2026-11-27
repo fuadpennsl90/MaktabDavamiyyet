@@ -281,7 +281,7 @@ body.camfull{overflow:hidden}
 #panoBar{display:none}
 #work.full #panoBar{display:flex;position:fixed;z-index:102;left:14px;right:14px;bottom:calc(176px + var(--sab));gap:8px;align-items:center;color:#fff;font-size:13px;font-weight:800;text-shadow:0 1px 4px #000}
 .pbtn{border:0;border-radius:14px;padding:10px 13px;font-size:13px;font-weight:800;background:rgba(255,255,255,.22);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.pbtn.on{background:var(--v)}.pbtn.go{background:var(--ok)}
+.pbtn.rec{background:#ef4444}
 #ghost{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;background:transparent!important}
 #work.full .top{position:fixed;top:0;left:0;right:0;z-index:102;margin:0;padding:calc(var(--sat) + 10px) 14px 24px;background:linear-gradient(rgba(0,0,0,.6),transparent);color:#fff}
 #work.full .top b{color:#fff}
@@ -389,12 +389,11 @@ body.camfull{overflow:hidden}
             <video id="video" playsinline muted autoplay class="hidden"></video>
             <canvas id="canvas" class="hidden"></canvas>
             <canvas id="live" class="hidden"></canvas>
-            <canvas id="ghost" class="hidden"></canvas>
             <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
           </div>
           <div class="zbar hidden" id="zbar"><button class="sbtn" id="zRot" aria-label="Döndər">↻</button><button class="sbtn" id="zOut" aria-label="Uzaqlaş">−</button><input type="range" id="zoom" min="1" max="4" step="0.1" value="1"><button class="sbtn" id="zIn" aria-label="Yaxınlaş">+</button><b id="zVal" style="min-width:42px;text-align:right">1×</b></div>
           <div id="liveCnt" class="hint" style="margin:8px 2px 0;font-weight:700"></div>
-          <div id="panoBar"><button class="pbtn" id="camSw" aria-label="Kamera">📷 Kamera</button><button class="pbtn" id="panoTog">↔ Panorama</button><span id="panoCnt"></span><button class="pbtn go hidden" id="panoDone">✔ Bitir</button><button class="pbtn hidden" id="panoRst">✖</button></div>
+          <div id="panoBar"><button class="pbtn" id="camSw" aria-label="Kamera">📷 Kamera</button><button class="pbtn" id="panoTog">↔ Sinfi süpür</button><span id="panoCnt"></span></div>
           <div id="msg"></div>
           <p class="hint" id="camTip" style="margin:10px 2px 0">💡 Telefonu üfüqi (yan) tutun və sinfi arxa küncdən çəkin, beləcə hamı sığır.</p>
           <div id="capBtns">
@@ -671,7 +670,7 @@ $("cgrid").onclick = e => {
 };
 
 function startClass(c) {
-  cur = c; camRot = 0; shot = null; acc = []; panoOn = false; pano = []; panoUI(); ex = { u: 0, n: 0 }; st = { present: 0, uni: 0 };
+  cur = c; camRot = 0; shot = null; acc = []; if (sweep) { clearInterval(sweep.timer); sweep = null; } sweepUI(); ex = { u: 0, n: 0 }; st = { present: 0, uni: 0 };
   $("curCls").textContent = c.n; $("curSlot").textContent = slot;
   $("pick").classList.add("hidden"); $("work").classList.remove("hidden"); $("dirNav").classList.add("hidden");
   $("stage").classList.remove("hidden"); $("capBtns").classList.remove("hidden"); $("resBox").classList.add("hidden");
@@ -841,7 +840,6 @@ function startLive() {
 function stopCam() { stopLive(); if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
 $("retake").onclick = () => { ex = { u: 0, n: 0 }; $("resBox").classList.add("hidden"); $("capBtns").classList.remove("hidden"); $("stage").classList.remove("hidden"); $("canvas").classList.add("hidden"); $("msg").textContent = ""; startCam(); };
 /* ---------- PANORAMA ---------- */
-let pano = [], panoOn = false, camIdx = -1;
 function grayOf(c, W) { const k = W / c.width, o = document.createElement("canvas"); o.width = W; o.height = Math.round(c.height * k); const x = o.getContext("2d", { willReadFrequently: true }); x.drawImage(c, 0, 0, o.width, o.height);
   const d = x.getImageData(0, 0, o.width, o.height).data, g = new Float32Array(o.width * o.height); for (let i = 0; i < g.length; i++) g[i] = .299 * d[i * 4] + .587 * d[i * 4 + 1] + .114 * d[i * 4 + 2]; return { g, w: o.width, h: o.height, k }; }
 function nccBest(a, b, dx0, dx1, dy0, dy1, tw, y0, th, st) {
@@ -874,29 +872,40 @@ function stitch(fr) {
   }
   return { canvas: out, scores: sc, offsets: off };
 }
-function drawGhost() {
-  const g = $("ghost"), st = $("stage");
-  if (!(panoOn && pano.length && stream)) { g.classList.add("hidden"); return; }
-  const sw = st.clientWidth, sh = st.clientHeight, f = pano[pano.length - 1], k = Math.min(sw / f.width, sh / f.height), dw = f.width * k, dh = f.height * k;
-  g.width = sw; g.height = sh; const x = g.getContext("2d"); x.clearRect(0, 0, sw, sh); x.globalAlpha = .45;
-  x.drawImage(f, f.width * .7, 0, f.width * .3, f.height, (sw - dw) / 2, (sh - dh) / 2, dw * .3, dh); g.classList.remove("hidden");
+let sweep = null, camIdx = -1;
+function sweepUI() {
+  const on = !!sweep; $("panoTog").textContent = on ? `■ Dayandır (${sweep.frames.length} kadr)` : "↔ Sinfi süpür"; $("panoTog").classList.toggle("rec", on);
+  $("panoCnt").textContent = on ? "Telefonu yavaş-yavaş yana çevirin" : "";
 }
-function panoUI() {
-  $("panoTog").textContent = panoOn ? "↔ Panorama: aktiv" : "↔ Panorama"; $("panoTog").classList.toggle("on", panoOn);
-  $("panoDone").classList.toggle("hidden", !(panoOn && pano.length >= 2)); $("panoRst").classList.toggle("hidden", !(panoOn && pano.length));
-  $("panoCnt").textContent = panoOn ? (pano.length ? pano.length + " şəkil" : "Soldan sağa çəkin") : ""; drawGhost();
+function pickFrames(fr) {
+  const kept = [fr[0]]; let dir = 0;
+  for (let i = 1; i < fr.length; i++) {
+    const L = kept[kept.length - 1], f = fr[i]; let best = null;
+    if (dir >= 0) { const r = register(L, f); best = { d: 1, r }; }
+    if (dir <= 0) { const r = register(f, L); if (!best || r.s > best.r.s) best = { d: -1, r }; }
+    if (best.r.s < 0.55 || best.r.dx < L.width * 0.3) continue;
+    kept.push(f); dir = best.d;
+  }
+  if (dir < 0) kept.reverse(); return kept;
 }
-$("panoTog").onclick = () => { panoOn = !panoOn; pano = []; panoUI(); if (panoOn) toast("Soldan sağa çəkin: hər şəkil əvvəlkinin təxminən 30%-ni təkrarlasın"); };
-$("panoRst").onclick = () => { pano = []; panoUI(); };
-$("panoDone").onclick = () => {
-  $("msg").textContent = "Şəkillər birləşdirilir..."; $("panoDone").disabled = true;
+function startSweep() {
+  const v = $("video"); if (!v.videoWidth) return toast("Kamera hələ hazır deyil");
+  stopLive(); sweep = { frames: [grab(v, 1280)] };
+  sweep.timer = setInterval(() => { if (!v.videoWidth || !sweep) return; sweep.frames.push(grab(v, 1280)); sweepUI(); if (sweep.frames.length >= 14) endSweep(); }, 800);
+  buzz(20); sweepUI();
+}
+function endSweep() {
+  if (!sweep) return; clearInterval(sweep.timer); const fr = sweep.frames; sweep = null; sweepUI();
+  $("msg").textContent = "Şəkillər birləşdirilir..."; $("panoTog").disabled = true;
   setTimeout(() => {
-    let r; try { r = stitch(pano); } catch (e) { r = { err: 1, s: 0 }; }
-    $("panoDone").disabled = false;
-    if (!r.canvas) { $("msg").innerHTML = `<span class="err">${r.err}-ci şəkil əvvəlkinə uyğun gəlmədi. Şəkillər üst-üstə düşməlidir (təxminən 30%). "✖" basıb yenidən çəkin.</span>`; return; }
-    $("msg").textContent = ""; const c = r.canvas; panoOn = false; pano = []; panoUI(); analyze(c, c.width, c.height, 2400);
+    let r = null, kept = [];
+    try { kept = pickFrames(fr); if (kept.length >= 2) r = stitch(kept); } catch (e) { r = null; }
+    $("panoTog").disabled = false;
+    if (!r || !r.canvas) { $("msg").innerHTML = '<span class="err">Birləşdirmək alınmadı. Telefonu daha yavaş və bərabər sürətlə yana çevirin, ya da adi "Şəkil çək" ilə çəkin.</span>'; startLive(); return; }
+    $("msg").textContent = ""; analyze(r.canvas, r.canvas.width, r.canvas.height, 2400);
   }, 60);
-};
+}
+$("panoTog").onclick = () => sweep ? endSweep() : startSweep();
 $("camSw").onclick = async () => {
   try {
     const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput" && !/front|user|ön/i.test(d.label));
@@ -904,8 +913,7 @@ $("camSw").onclick = async () => {
     camIdx = (camIdx + 1) % ds.length; toast("Kamera: " + (ds[camIdx].label || "arxa " + (camIdx + 1))); startCam(ds[camIdx].deviceId);
   } catch (_) { toast("Kamera dəyişdirilmədi"); }
 };
-addEventListener("resize", () => drawGhost());
-$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin.</span>'; return; } if (panoOn) { pano.push(grab(v, 1280)); panoUI(); toast(pano.length + "-ci şəkil götürüldü. Kameranı sağa çevirin, ✔ Bitir ilə tamamlayın"); return; }
+$("snap").onclick = () => { buzz(30); const v = $("video"); if (!v.videoWidth) { $("msg").innerHTML = '<span class="err">Kamera hələ hazır deyil. Bir az gözləyin.</span>'; return; } if (sweep) return endSweep();
   const c = grab(v, 0); analyze(c, c.width, c.height); };
 /* ---------- FORMA DƏSTLƏRİ (96 saylı qərarın əlavələrindəki rəsmlərdən) ---------- */
 const mk = (name, c, skirt) => ({ name, c, up: [c.shirt, c.trim, c.jack, c.jtrim], low: [c.low, ...(skirt ? [skirt] : [])] });
@@ -1624,7 +1632,7 @@ const l=document.createElement("link");l.rel="manifest";l.href=URL.createObjectU
   const D=(t,b,o)=>`<details${o?" open":""}><summary>${t}</summary>${b}</details>`;
   const dir=[
    D("1. Sistemə giriş",`<ol><li>Saytı açın.</li><li>Məktəbinizə verilən <b>girişi</b> və <b>parolu</b> yazın.</li><li><b>Daxil ol</b> düyməsinə basın.</li></ol><div class="tip">Giriş və parolu bilmirsinizsə, regional təhsil idarəsinə müraciət edin.</div>`,1),
-   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: şəkildəki qutulara toxunub formalı şagirdi yaşıl ✓, formasızı qırmızı ✗ edin, sonra <b>🎯 Formanı öyrət</b> düyməsinə basın.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Hamı bir kadra sığmırsa:</b> <b>↔ Panorama</b> düyməsinə basın. Sinfi soldan sağa 2-3 şəkildə çəkin, hər şəkil əvvəlkinin təxminən 30%-ni təkrarlasın (ekranda əvvəlki şəklin silik kənarı görünür). Sonra <b>✔ Bitir</b> basın. Şəkillər bir şəkildə birləşir, heç kim iki dəfə sayılmır. <b>📷 Kamera</b> düyməsi ilə geniş bucaqlı kameraya keçə bilərsiniz.</li><li>Kamerada <b>+ / −</b> düymələri və ya slayder ilə yaxınlaşıb uzaqlaşa bilərsiniz (iki barmaqla da olur).</li><li>Kamerada yaşıl qutular və <b>"Kadrda təxminən N nəfər"</b> yazısı canlı görünür. Sayı siyahıdakı sayla müqayisə edib telefonu elə yerləşdirin ki, hamı kadra düşsün.</li><li>Hamı kameraya sığsın deyə telefonu <b>üfüqi (yan)</b> tutun və sinfi arxa küncdən çəkin. Artıq və ya səhv qutunu silmək üçün ona uzun basın.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
+   D("2. Vahid geyim yoxlaması",`<ol><li>Alt menyuda <b>Vahid Geyim Yoxlaması</b> bölməsini açın.</li><li>Yuxarıda saatı seçin: <b>10:00</b> və ya <b>13:00</b>.</li><li><b>Forma dəstini</b> seçin (məktəbinizin forması hansı rəngdədirsə). Bir dəfə seçmək kifayətdir.</li><li><b>+ Sinif əlavə et</b> ilə sinifi və siyahıdakı şagird sayını yazın (məs. 7a, 25). Bu da bir dəfə edilir.</li><li>Yoxlamaq istədiyiniz sinfə toxunun, kamera açılır. Sinfi şəkilə alın və <b>Şəkil çək</b> düyməsinə basın.</li><li>Forma səhv tanınırsa: şəkildəki qutulara toxunub formalı şagirdi yaşıl ✓, formasızı qırmızı ✗ edin, sonra <b>🎯 Formanı öyrət</b> düyməsinə basın.</li><li>Nəticədə yaşıl ✓ formada olan, qırmızı ✗ formada olmayan şagirddir. Səhv varsa, şəkildəki qutuya toxunub düzəldin.</li><li><b>Hamı bir kadra sığmırsa:</b> <b>↔ Sinfi süpür</b> düyməsinə basın, telefonu yavaş-yavaş yana (soldan sağa və ya sağdan sola) çevirin, sonra yenidən basın. Şəkillər avtomatik birləşir, heç kim iki dəfə sayılmır. <b>📷 Kamera</b> düyməsi ilə geniş bucaqlı kameraya keçə bilərsiniz.</li><li>Kamerada <b>+ / −</b> düymələri və ya slayder ilə yaxınlaşıb uzaqlaşa bilərsiniz (iki barmaqla da olur).</li><li>Kamerada yaşıl qutular və <b>"Kadrda təxminən N nəfər"</b> yazısı canlı görünür. Sayı siyahıdakı sayla müqayisə edib telefonu elə yerləşdirin ki, hamı kadra düşsün.</li><li>Hamı kameraya sığsın deyə telefonu <b>üfüqi (yan)</b> tutun və sinfi arxa küncdən çəkin. Artıq və ya səhv qutunu silmək üçün ona uzun basın.</li><li><b>Qeyd et</b> düyməsinə basın. Sinif yaşıl olur, yoxlama tamamdır.</li></ol><div class="tip">Şəkil heç yerə göndərilmir, yalnız rəqəmlər qeyd olunur. Yoxlama hər gün 10:00 və 13:00 üçün ayrıca edilir.</div>`),
    D("3. Kamera işləmirsə",`<ul><li>Brauzer kameraya icazə istəyəndə <b>İcazə ver</b> seçin.</li><li>Kamera başqa tətbiqdə açıqdırsa, onu bağlayın.</li><li>Forma düzgün olan şagird qırmızı çıxırsa, <b>Tənzimləmələr</b>-də uyğunluq həddini azaldın.</li></ul>`),
    D("4. Təhsildən yayınanlar",`<ol><li>Alt menyuda <b>Təhsildən Yayınanlar</b> bölməsini açın.</li><li>Sinfi və tarixi seçin.</li><li>Dərsə gəlməyən şagirdin yanında <b>Üzrsüz</b>, <b>Xəstəlik</b> və ya <b>Üzrlü</b> düyməsinə basın. Avtomatik saxlanır. Düzəliş üçün <b>Gəlib</b> düyməsinə basın.</li><li>İstəsəniz görülən tədbiri yazın (məs. valideynlə danışıldı).</li><li>Aşağıdakı <b>Yayınanlar cədvəli</b>-ndə həmin gün yayınan bütün şagirdlər görünür. Sətrə toxunsanız şagirdin bütün tarixçəsi açılır.</li></ol>`),
    D("5. Şagird əlavə etmək və tarixçə",`<ul><li><b>Yeni şagird:</b> <b>+ Yeni şagird əlavə et</b> düyməsinə basın. Soyad, ad, ata adı, sinif, UTİS (rəqəm) və FİN (7 simvol) yazıb saxlayın.</li><li><b>Düzəliş və ya silmə:</b> şagird məlumatını yalnız idarə (administrator) dəyişə və ya silə bilər. Səhv olsa idarəyə müraciət edin.</li><li><b>Bərpa:</b> şagird dərsə qayıdıbsa, tarixçədə tarixi seçib <b>Bərpa olundu</b> düyməsinə basın.</li></ul>`),
